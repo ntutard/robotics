@@ -6,7 +6,7 @@ import serial
 DATA_START = 0xff
 INSTRUCTION_WRITE = 0x03
 INSTRUCTION_PING = 0x01
-
+INSTRUCTION_READ=0x02
 LED=0x19
 LED_ON = 0x01
 LED_OFF = 0x00
@@ -54,8 +54,12 @@ def parseDatas(servoId, l, ins, params):
 
     return data
 
+
 def instructionRead(servoId,params):
+    data_length=0x04
     
+    return parseDatas(servoId,data_length,INSTRUCTION_READ,params)
+
 def instructionWrite(servoId, params):
     data_length = 0x03 + (len(params) - 1)
 
@@ -90,29 +94,56 @@ def decode_data(data):
 
     return res
 
+def decode_data_array(data):
+    res = []
+    for d in data:
+        res.insert(len(res), ord(d))
+
+    return res
+
+def sendData(data):
+    write_data(serial_port, data)
+
+def readData(size):
+    return read_data(serial_port, size)
+
+def sendReadOn(servoId, params):
+    data = instructionRead(servoId, params)
+    
+    sendData(data)
+    
+    currentData = decode_data_array(readData(4))
+    l = 2 + currentData[3]
+    currentData = decode_data_array(readData(l))
+
+    return currentData
+
 if __name__ == '__main__':
 
-    # we open the port
-    serial_port = open_serial('/dev/ttyUSB0', 1000000, timeout=0.1)
+    serial_port = open_serial('/dev/ttyUSB0', 1000000, timeout=0.1) 
 
-    # print findServo()
-    data = instructionWrite(0x01, [0x20, 0x01, 0x00])
+    # # we open the port
+    
+    # # print findServo()
+    data = instructionWrite(0x01, [0x20, 0x60, 0x00])
 
-    # print decode_data(data)
+    # # print decode_data(data)
     write_data(serial_port, data)
 
-    # read the status packet (size 6)
+    # # read the status packet (size 6)
     d = read_data(serial_port, 6)
 
-    # print findServo()
-    data = instructionWrite(0x01, [0x1E, 0x00, 0x02])
+    # # print findServo()
+    data = instructionWrite(0x01, [0x1E, 0x00, 0x03])
 
-    # print decode_data(data)
+    # # print decode_data(data)
     write_data(serial_port, data)
 
-    # read the status packet (size 6)
+    # # read the status packet (size 6)
     d = read_data(serial_port, 6)
 
     print decode_data(d)
 
-   
+
+    print sendReadOn(0x01, [0x1E, 0x02])
+    
