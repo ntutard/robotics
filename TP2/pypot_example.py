@@ -3,6 +3,21 @@ import time
 import numpy
 import pypot.dynamixel
 import pypot.dynamixel.conversion
+from math import cos, sin, acos, asin
+import math
+
+def leg_dk(T1,T2,T3,L1 = 51,L2 = 63.7, L3 =93, a=None, b=None ):
+    if a == None:
+        a = asin(22.5/L2)
+    if b == None:
+        b = asin(8.2/L3)
+        
+    T1f=math.radians(T1)
+    T2f=-math.radians(T2)-a
+    T3f=math.radians(T3) + b - math.radians(90) + a
+    return [cos(T1f) * (L1 + L2*cos(T2f) + L3*cos(T3f+T2f) ),
+          sin(T1f) * (L1 + L2*cos(T2f) + L3*cos(T3f+T2f)),
+          L2 * sin(T2f) + L3*sin(T3f+T2f)]
 
 def initialisation(ids):
     dxl_io.enable_torque(found_ids)
@@ -89,7 +104,7 @@ def suivreSinusoide(ids, frequence,amplitude,temps):
         time.sleep(0.02)
         
         
-    
+
 if __name__ == '__main__':
 
     # we first open the Dynamixel serial port
@@ -112,11 +127,19 @@ if __name__ == '__main__':
         # dxl_io.set_goal_position(pos)
         # time.sleep(1)  # we wait for 1
     
-        changeId(found_ids)
+        #changeId(found_ids)
         #suivreSinusoide(found_ids,0.5,30,15)
         # we get the current positions
         print 'New pos:', dxl_io.get_present_position(found_ids)
-
+##        dxl_io.disable_torque(found_ids)
+        pos = dict(zip(found_ids, [0,30,-67]))
+        dxl_io.set_goal_position(pos)
+        dxl_io.disable_torque(found_ids)
+##        while True :
+##                angle=dxl_io.get_present_position(found_ids)
+##                print 'Position :',leg_dk(angle[0],angle[1],angle[2])
+##                time.sleep(0.5)
+            
         # we power off the motors
 
         time.sleep(1)  # we wait for 1s
