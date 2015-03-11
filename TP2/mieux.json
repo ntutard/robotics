@@ -1,0 +1,55 @@
+{
+    "controllers": {
+        "dxl_controller_0": {
+            "sync_read": false, "attached_motors": ["motor_11", "motor_12", "motor_13", "motor_21", "motor_22", "motor_23", "motor_31", "motor_32", "motor_33", "motor_41", "motor_42", "motor_43", "motor_51", "motor_52", "motor_53", "motor_61", "motor_62", "motor_63"], "port": "/dev/ttyUSB0"}
+        }
+    , "motorgroups": {
+	"leg1" : ["motor_11", "motor_12", "motor_13"],
+	"leg2" : ["motor_41","motor_42","motor_43"],
+	"leg31": ["motor_51","motor_52","motor_53"],
+	"leg32": ["motor_61","motor_62","motor_63"],
+	"leg41": ["motor_31","motor_32","motor_33"],
+	"leg42": ["motor_21","motor_22","motor_23"]
+	"firstMotors": ["motor_11", "motor_21", "motor_31", "motor_41", "motor_51", "motor_61"],
+	"secondMotors": ["motor_12", "motor_22", "motor_32", "motor_42", "motor_52", "motor_62"],
+	"thirdMotors": ["motor_13", "motor_23", "motor_33", "motor_43", "motor_53", "motor_63"]
+        }
+    , "motors": {
+        "motor_42": {
+            "orientation": "direct", "type": "AX-12", "id": 42, "angle_limit": [-85.48, 49.41], "offset": 0.0}
+        , "motor_43": {
+            "orientation": "direct", "type": "AX-12", "id": 43, "angle_limit": [-86.95, 90.47], "offset": 0.0}
+        , "motor_41": {
+            "orientation": "direct", "type": "AX-12", "id": 41, "angle_limit": [-62.02, 25.95], "offset": 0.0}
+        , "motor_51": {
+            "orientation": "direct", "type": "AX-12", "id": 51, "angle_limit": [-91.35, 113.93], "offset": 0.0}
+        , "motor_53": {
+            "orientation": "direct", "type": "AX-12", "id": 53, "angle_limit": [-86.95, 90.47], "offset": 0.0}
+        , "motor_52": {
+            "orientation": "direct", "type": "AX-12", "id": 52, "angle_limit": [-85.48, 49.41], "offset": 0.0}
+        , "motor_11": {
+            "orientation": "direct", "type": "AX-12", "id": 11, "angle_limit": [-85.48, 49.41], "offset": 0.0}
+        , "motor_13": {
+            "orientation": "direct", "type": "AX-12", "id": 13, "angle_limit": [-86.95, 90.47], "offset": 0.0}
+        , "motor_12": {
+            "orientation": "direct", "type": "AX-12", "id": 12, "angle_limit": [-62.02, 25.95], "offset": 0.0}
+        , "motor_61": {
+            "orientation": "direct", "type": "AX-12", "id": 61, "angle_limit": [-18.04, 69.94], "offset": 0.0}
+        , "motor_62": {
+            "orientation": "direct", "type": "AX-12", "id": 62, "angle_limit": [-85.48, 49.41], "offset": 0.0}
+        , "motor_32": {
+            "orientation": "direct", "type": "AX-12", "id": 32, "angle_limit": [-85.48, 49.41], "offset": 0.0}
+        , "motor_33": {
+            "orientation": "direct", "type": "AX-12", "id": 33, "angle_limit": [-86.95, 90.47], "offset": 0.0}
+        , "motor_21": {
+            "orientation": "direct", "type": "AX-12", "id": 21, "angle_limit": [-91.35, 113.93], "offset": 0.0}
+        , "motor_22": {
+            "orientation": "direct", "type": "AX-12", "id": 22, "angle_limit": [-85.48, 49.41], "offset": 0.0}
+        , "motor_23": {
+            "orientation": "direct", "type": "AX-12", "id": 23, "angle_limit": [-86.95, 90.47], "offset": 0.0}
+        , "motor_31": {
+            "orientation": "direct", "type": "AX-12", "id": 31, "angle_limit": [-18.04, 69.94], "offset": 0.0}
+        , "motor_63": {
+            "orientation": "direct", "type": "AX-12", "id": 63, "angle_limit": [-86.95, 90.47], "offset": 0.0}
+        }
+    }
