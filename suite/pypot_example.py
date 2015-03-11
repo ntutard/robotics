@@ -132,7 +132,17 @@ def setLeg(spider_robot,x,y,z):
     for m in leg :
         if (abs(tmp[i]) < 130):
             m.goal_position = tmp[i]
-        i += 1 
+        i += 1
+
+def moveLegRepere(sr, leg, x, y, z):
+    if (sr.leg1 == leg) :
+        moveLeg(leg, x, y, z)
+    elif (sr.leg2 == leg) :
+        moveLeg(leg, -x, -y, z)
+    elif (sr.leg31 == leg or sr.leg32 == leg):
+        moveLeg(leg, -y, x, z)
+    else
+        moveLeg(leg, y, -x, z)
     
 def move(spider_robot, x, y, z) :
     moveLeg(spider_robot.leg1, x, y, z)
@@ -145,7 +155,12 @@ def move(spider_robot, x, y, z) :
 def moveTwoLegs(leg1, leg2, x, y, z):
     moveLeg(leg1, x, y, z)
     moveLeg(leg2, x, y, z)
-    
+
+def upAndDownLeg(leg):
+    moveLeg(leg, 0, 0, 10)
+    time.sleep(0.35)
+    for m in leg :
+        m.goal_position = 0
 
 def rotate2(spider_robot) :
     waitTime = 0.35
@@ -201,6 +216,28 @@ def setInit(spider_robot) :
             m.compliant = False
             m.goal_speed = 100
             m.goal_position = 0
+
+
+def moveThreeLegs(leg1, leg2, leg3, x, y, z):
+    moveLeg(leg1, x, y, z)
+    moveLeg(leg2, x, y, z)
+    moveLeg(leg3, x, y, z)
+
+def moveLegsRepere(sr,leg, moves):
+    i = 0
+    for m in moves:
+        j = 0
+        for l in leg:
+            moveLegRepere(sr, l, moves[i][j][0], moves[i][j][1], moves[i][j][2])
+            j += 1
+        i += 1
+    
+def walk(spider_robot):
+    waitTime = 0.35
+    
+    moveLegs([spider_robot.leg2, spider_robot.leg32, spider_robot.leg42],
+             [
+    
         
 if __name__ == '__main__':
 
@@ -214,8 +251,7 @@ if __name__ == '__main__':
 
         time.sleep(1)
 
-        while(True):
-                rotate2(spider_robot)
+        walk(spider_robot)
                 
                 
         #move(spider_robot,0,
