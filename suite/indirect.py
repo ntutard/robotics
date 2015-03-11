@@ -18,11 +18,13 @@ def leg_ik( x ,y ,z ,L1 = 51,L2 = 63.7, L3 =93, alpha=None, beta=None):
     d13 = Lproj-L1
     if (d13 < 0):
         d13 = 0
+        print ("Destination trop proche")
+        
     
     d = math.sqrt(z*z+d13*d13)
     if (d > L2+L3):
         d = L2+L3
-        
+        print ("Destination trop éloignée")
     ## Calcul de T1 : simple tangeante
     if x==0:
         if y>0 :

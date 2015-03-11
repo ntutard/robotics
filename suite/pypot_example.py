@@ -8,6 +8,7 @@ import pypot.robot.robot
 from pypot.dynamixel import autodetect_robot
 from pypot.robot import from_json
 from math import cos, sin, acos, asin
+from indirect import *
 import math
 
 def leg_dk(T1,T2,T3,L1 = 51,L2 = 63.7, L3 =93, a=None, b=None ):
@@ -29,13 +30,8 @@ def initialisation(ids):
     dxl_io.set_goal_position(initPos)
 
     print("Waiting motor movement")
-        
-    for i in ids:
-        inited = False
-        while not inited:
-            if (abs(dxl_io.get_present_position([i])[0]) < 1):
-                inited = True
-                
+    time.sleep(0.30)
+    
     dxl_io.disable_torque(found_ids)
     print("Ready ")
 
@@ -99,7 +95,7 @@ def changeId(ids):
             
     initialisation(ids)
     print(ids)
-            
+          
 def suivreSinusoide(ids, frequence,amplitude,temps):
     t0=time.time()
     t=0
@@ -110,100 +106,120 @@ def suivreSinusoide(ids, frequence,amplitude,temps):
         dxl_io.set_goal_position(posArray)
         time.sleep(0.02)
         
-        
+## FONCTIONS UTILES ##
 
-if __name__ == '__main__':
+def moveLeg(leg, x, y, z):
+    oldPos = []
+    for m in leg :
+        oldPos.append(m.goal_position)
 
-    # we first open the Dynamixel serial port
-##    with pypot.dynamixel.DxlIO('/dev/ttyUSB0', baudrate=1000000) as dxl_io:
-##
-##        # we can scan the motors
-##        found_ids = dxl_io.scan()  # this may take several seconds
-##     #   print 'Detected:', found_ids
-##      #  print('Do you want to change all the ids (1 to change 0 to not change) :')
-##
-##       # answer=input()
-##        #if int(answer) == 1:
-##        changeId(found_ids)
+    co = leg_dk(oldPos[0], oldPos[1], oldPos[2])
+    co[0] += x
+    co[1] += y
+    co[2] += z
 
-          #  yesfound_ids = dxl_io.scan()  # this may take several seconds
-           # print 'Detected:', yesfound_ids
-        
-##        spider_robot=autodetect_robot()
-##        config = spider_robot.to_config()
-##        with open('spider_robot.json', 'wb') as f:
-##            json.dump(config, f)
-##        spider_robot.close()
+    print co
+    tmp = leg_ik(co[0],co[1],co[2])
+    i = 0
+    for m in leg :
+        if (abs(tmp[i]) < 130):
+            m.goal_position = tmp[i]
+        i += 1          
 
-        
-           
-        spider_robot=from_json('spider_robot.json')
-        print "petit message"
-        for m in spider_robot.thirdMotors :
+def setLeg(spider_robot,x,y,z):
+    tmp = leg_ik(x,y,z)
+    i = 0
+    for m in leg :
+        if (abs(tmp[i]) < 130):
+            m.goal_position = tmp[i]
+        i += 1 
+    
+def move(spider_robot, x, y, z) :
+    moveLeg(spider_robot.leg1, x, y, z)
+    moveLeg(spider_robot.leg2, -x, -y, z)
+    moveLeg(spider_robot.leg31, -y, x, z)
+    moveLeg(spider_robot.leg32, -y, x, z)
+    moveLeg(spider_robot.leg41, y, -x, z)
+    moveLeg(spider_robot.leg42, y, -x, z)
+
+def moveTwoLegs(leg1, leg2, x, y, z):
+    moveLeg(leg1, x, y, z)
+    moveLeg(leg2, x, y, z)
+    
+
+def rotate2(spider_robot) :
+    waitTime = 0.35
+    moveY = -50
+
+    # First phase
+    
+    moveTwoLegs(spider_robot.leg1, spider_robot.leg2, 0, 0, 20)    
+    moveTwoLegs(spider_robot.leg32, spider_robot.leg41, 0,0,-10)
+    moveTwoLegs(spider_robot.leg42, spider_robot.leg31, 0,0,20)
+    time.sleep(waitTime)
+
+    moveTwoLegs(spider_robot.leg32, spider_robot.leg41, 0,moveY,0)
+    moveTwoLegs(spider_robot.leg42, spider_robot.leg31, 0,moveY,0)
+    
+    time.sleep(waitTime)
+
+    moveTwoLegs(spider_robot.leg32, spider_robot.leg41, 0,0,10)
+    moveTwoLegs(spider_robot.leg42, spider_robot.leg31, 0,0,-20)
+    moveTwoLegs(spider_robot.leg1, spider_robot.leg2, 0, 0, -20)
+    time.sleep(waitTime)
+
+    # Second phase
+
+    moveTwoLegs(spider_robot.leg32, spider_robot.leg41, 0,0,20)
+    time.sleep(waitTime)
+    
+    moveTwoLegs(spider_robot.leg32, spider_robot.leg41, 0,-moveY,0)
+
+
+    time.sleep(waitTime)
+
+    moveTwoLegs(spider_robot.leg32, spider_robot.leg41, 0,0,-20)
+    time.sleep(waitTime)
+    moveTwoLegs(spider_robot.leg42, spider_robot.leg31, 0,0,20)
+    time.sleep(waitTime)
+    moveTwoLegs(spider_robot.leg42, spider_robot.leg31, 0,-moveY,0)
+    time.sleep(waitTime)
+    moveTwoLegs(spider_robot.leg42, spider_robot.leg31, 0,0,-20)
+    time.sleep(waitTime)
+
+    
+def setInit(spider_robot) :
+    for m in spider_robot.thirdMotors :
             m.compliant = False
             m.goal_speed = 150
             m.goal_position = 0
-        for m in spider_robot.secondMotors :
+    for m in spider_robot.secondMotors :
             m.compliant = False
             m.goal_speed = 100
             m.goal_position = 0
-        for m in spider_robot.firstMotors :
+    for m in spider_robot.firstMotors :
             m.compliant = False
             m.goal_speed = 100
             m.goal_position = 0
-            
-        time.sleep(2)
-        t0 = time.time()
-        while (True):
-            t = math.sin(2 * math.pi * 0.5 * time.time() - t0) - 0.5
-            if (t < 0):
-                spider_robot.motor_12.goal_position =  -60 * abs(t)
-                if (abs(t) > 0.5):
-                    spider_robot.motor_13.goal_position = 150 * (abs(t) - 0.5)
-                time.sleep(0.02)
-            else:
-                spider_robot.motor_42.goal_position =  -60 * abs(t)
-                if (abs(t) > 0.5):
-                    spider_robot.motor_43.goal_position = 150 * (abs(t) - 0.5)
-                time.sleep(0.02)
         
+if __name__ == '__main__':
 
+        #with pypot.dynamixel.DxlIO('/dev/ttyUSB0', baudrate=1000000) as dxl_io:
+        #        found_ids = dxl_io.scan()  # this may take several seconds
+        #        changeId(found_ids)
+
+        spider_robot=from_json('spider_robot.json')
+        print "petit message"
+        setInit(spider_robot)
+
+        time.sleep(1)
+
+        while(True):
+                rotate2(spider_robot)
+                
+                
+        #move(spider_robot,0,
         spider_robot.close()
 
-
-
-
-
-
-        
-        # we power on the motors
-        #dxl_io.enable_torque(found_ids)
-
-        # we get the current positions
-        #print 'Current pos:', dxl_io.get_present_position(found_ids)
-
-        # # we create a python dictionnary: {id0 : position0, id1 : position1...}
-        # pos = dict(zip(found_ids, itertools.repeat(0)))
-        # print 'Cmd:', pos
-        # # we send these new positions
-        # dxl_io.set_goal_position(pos)
-        # time.sleep(1)  # we wait for 1
-    
-        #changeId(found_ids)
-        #suivreSinusoide(found_ids,0.5,30,15)
-        # we get the current positions
-       # print 'New pos:', dxl_io.get_present_position(found_ids)
-##        dxl_io.disable_torque(found_ids)
-        #pos = dict(zip(found_ids, [0,30,-67]))
-        #dxl_io.set_goal_position(pos)
-        #dxl_io.disable_torque(found_ids)
-##        while True :
-##                angle=dxl_io.get_present_position(found_ids)
-##                print 'Position :',leg_dk(angle[0],angle[1],angle[2])
-##                time.sleep(0.5)
-            
-        # we power off the motors
-        
-        time.sleep(1)  # we wait for 1s
 
         
