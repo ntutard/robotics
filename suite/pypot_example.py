@@ -118,7 +118,6 @@ def moveLeg(leg, x, y, z):
     co[1] += y
     co[2] += z
 
-    print co
     tmp = leg_ik(co[0],co[1],co[2])
     i = 0
     for m in leg :
@@ -210,11 +209,11 @@ def setInit(spider_robot) :
             m.goal_position = 0
     for m in spider_robot.secondMotors :
             m.compliant = False
-            m.goal_speed = 100
+            m.goal_speed = 150
             m.goal_position = 0
     for m in spider_robot.firstMotors :
             m.compliant = False
-            m.goal_speed = 100
+            m.goal_speed = 150
             m.goal_position = 0
 
 
@@ -231,8 +230,8 @@ def moveLegsRepere(sr, leg, moves, waitTime):
         time.sleep(waitTime)
         i += 1
     
-def walk(beginWalk, sr):
-    waitTime = 0.35
+def spiderWalk(beginWalk, sr):
+    waitTime = 0.25
     legs1 = [sr.leg1, sr.leg31, sr.leg41]
     legs2 = [sr.leg2, sr.leg32, sr.leg42]
 
@@ -254,34 +253,109 @@ def walk(beginWalk, sr):
     moveLegsRepere(sr, legs1, [reculer], waitTime)
     moveLegsRepere(sr, legs2, [doubleMonter], waitTime)
 
+def scorpionWalk(beginWalk, forward, sr):
+        if (forward):
+                coefX = 30
+        else:
+                coefX = -30
+
+        coefZ = 30
+        waitFactor = 1.2
+
+        sr.motor_42.goal_position = -50
+        sr.motor_43.goal_position = 120
+
+        if (beginWalk):
+                moveLegsRepere(sr, [sr.leg42, sr.leg31], [[0, 0, coefZ]], 0)
+                moveLegsRepere(sr, [sr.leg32, sr.leg41], [[-coefX, 0, 0]], 0.15*waitFactor)
+                moveLegsRepere(sr, [sr.leg42, sr.leg31], [[0, 0, -coefZ]], 0.05*waitFactor)
+
+        moveLegsRepere(sr, [sr.leg32, sr.leg41], [[0, 0, coefZ]], 0)
+        moveLegsRepere(sr, [sr.leg42, sr.leg31], [[-coefX, 0, 0]], 0.05*waitFactor)
+        moveLegsRepere(sr, [sr.leg32, sr.leg41], [[coefX, 0, 0]], 0.10*waitFactor)
+        moveLegsRepere(sr, [sr.leg32, sr.leg41], [[0, 0, -coefZ]], 0.05*waitFactor)
+
+        sr.motor_42.goal_position = -70
+        sr.motor_43.goal_position = 135
+
+        moveLegsRepere(sr, [sr.leg31, sr.leg42], [[0, 0, coefZ]], 0)
+        moveLegsRepere(sr, [sr.leg41, sr.leg32], [[-coefX, 0, 0]], 0.05*waitFactor)
+        moveLegsRepere(sr, [sr.leg31, sr.leg42], [[coefX, 0, 0]], 0.10*waitFactor)
+        moveLegsRepere(sr, [sr.leg31, sr.leg42], [[0, 0, -coefZ]], 0.05*waitFactor)
+               
 def spiderMode(sr):
         setInit(sr)
 
         time.sleep(1)
         
-        move(sr, 0, 0, 30)
+        move(sr, 0, 0, 35)
 
-        moveLegsRepere(sr, [sr.leg32, sr.leg42], [[20, 0, 0]], 0)
-        moveLegsRepere(sr, [sr.leg31, sr.leg41], [[-20, 0, 0]], 0)
-         
+        moveLegsRepere(sr, [sr.leg32, sr.leg42], [[50, 0, 0]], 0)
+        moveLegsRepere(sr, [sr.leg31, sr.leg41], [[-50, 0, 0]], 0)
+
+def scorpionMode(sr):
+        setInit(sr)
+
+        time.sleep(2)
+                
+        sr.motor_12.goal_position = -60
+        sr.motor_13.goal_position = 15
+        sr.motor_42.goal_position = -70
+        sr.motor_43.goal_position = 135
+
+        time.sleep(0.5)
+
+        moveLegsRepere(sr, [sr.leg32, sr.leg42], [[70, 0, 40]], 0)
+        moveLegsRepere(sr, [sr.leg31, sr.leg41], [[-70, 0, 40]], 0)
+
+        time.sleep(0.5)
+        sr.motor_42.goal_speed = 40
+        sr.motor_43.goal_speed = 35
+        sr.motor_42.goal_position = -70
+        sr.motor_43.goal_position = 135
+       
+        
+        
 if __name__ == '__main__':
+
+        state = "waiting"
 
         #with pypot.dynamixel.DxlIO('/dev/ttyUSB0', baudrate=1000000) as dxl_io:
         #        found_ids = dxl_io.scan()  # this may take several seconds
         #        changeId(found_ids)
 
+        print ("Initialisation du robot")
         spider_robot=from_json('spider_robot.json')
-        print "petit message"
-        spiderMode(spider_robot)
+        scorpionMode(spider_robot)
         time.sleep(1)
+
+        import sys, tty, termios
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        ch = ''
+
+        while (ch != 'q' and ch != 'Q'):
+                try:
+                        tty.setraw(sys.stdin.fileno())  
+                        ch = sys.stdin.read(1)
+                finally:
+                        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+                        if (ch == 'z' or ch == 'Z'):
+                                print("Forward Walking")
+                                if (state == "forwardWalking"):
+                                        scorpionWalk(False, True, spider_robot)
+                                else:
+                                        scorpionWalk(True, True, spider_robot)
+                                        state = "forwardWalking"
+                                print("End Walking")
+                        elif (ch == 's' or ch == 'S'):
+                                print("Backward Walking")
+                                #if (state == "backWardWalking")
+                                        
+
+        print("Deconnexion")
         
-        walk(True, spider_robot)
-        while True:
-             walk(False, spider_robot)
-        #moveLegsRepere(spider_robot, [spider_robot.leg1, spider_robot.leg2], [[-20,0,0], [20,0,0]], 1)
-                
-                
-        #move(spider_robot,0,
         spider_robot.close()
 
 
