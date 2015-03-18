@@ -141,7 +141,7 @@ def moveLegRepere(sr, leg, x, y, z):
         moveLeg(leg, -x, -y, z)
     elif (sr.leg31 == leg or sr.leg32 == leg):
         moveLeg(leg, -y, x, z)
-    else
+    else:
         moveLeg(leg, y, -x, z)
     
 def move(spider_robot, x, y, z) :
@@ -223,22 +223,47 @@ def moveThreeLegs(leg1, leg2, leg3, x, y, z):
     moveLeg(leg2, x, y, z)
     moveLeg(leg3, x, y, z)
 
-def moveLegsRepere(sr,leg, moves):
+def moveLegsRepere(sr, leg, moves, waitTime):
     i = 0
     for m in moves:
-        j = 0
         for l in leg:
-            moveLegRepere(sr, l, moves[i][j][0], moves[i][j][1], moves[i][j][2])
-            j += 1
+            moveLegRepere(sr, l, moves[i][0], moves[i][1], moves[i][2])
+        time.sleep(waitTime)
         i += 1
     
-def walk(spider_robot):
+def walk(beginWalk, sr):
     waitTime = 0.35
+    legs1 = [sr.leg1, sr.leg31, sr.leg41]
+    legs2 = [sr.leg2, sr.leg32, sr.leg42]
+
+    coefX = 40
+    coefZ = 15
     
-    moveLegs([spider_robot.leg2, spider_robot.leg32, spider_robot.leg42],
-             [
-    
+    monter=[0,0,coefZ]
+    doubleMonter = [0, 0, coefZ * 2]
+    descendre=[0,0,-coefZ]
+    doubleDescendre=[0, 0, -(coefZ * 2)]
+    avancer=[-coefX, 0, 0]
+    reculer=[coefX, 0, 0]
+
+    if (beginWalk):
+        moveLegsRepere(sr, legs2, [monter], waitTime)
         
+    moveLegsRepere(sr, legs1, [avancer], waitTime)
+    moveLegsRepere(sr, legs2, [doubleDescendre], waitTime)
+    moveLegsRepere(sr, legs1, [reculer], waitTime)
+    moveLegsRepere(sr, legs2, [doubleMonter], waitTime)
+
+def spiderMode(sr):
+        setInit(sr)
+
+        time.sleep(1)
+        
+        move(sr, 0, 0, 30)
+
+        moveLegsRepere(sr, [sr.leg32, sr.leg42], [[20, 0, 0]], 0)
+        moveLegsRepere(sr, [sr.leg31, sr.leg41], [[-20, 0, 0]], 0)
+         
 if __name__ == '__main__':
 
         #with pypot.dynamixel.DxlIO('/dev/ttyUSB0', baudrate=1000000) as dxl_io:
@@ -247,11 +272,13 @@ if __name__ == '__main__':
 
         spider_robot=from_json('spider_robot.json')
         print "petit message"
-        setInit(spider_robot)
-
+        spiderMode(spider_robot)
         time.sleep(1)
-
-        walk(spider_robot)
+        
+        walk(True, spider_robot)
+        while True:
+             walk(False, spider_robot)
+        #moveLegsRepere(spider_robot, [spider_robot.leg1, spider_robot.leg2], [[-20,0,0], [20,0,0]], 1)
                 
                 
         #move(spider_robot,0,
