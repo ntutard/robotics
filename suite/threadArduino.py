@@ -18,10 +18,10 @@ class PollArduino(Thread):
         s=self.shared
         return s
 
-p=PollArduino()
-p.start()
-while(True):
-    print p.getValue()
-    time.sleep(0.1)
+# p=PollArduino()
+# p.start()
+# while(True):
+#     print p.getValue()
+#     time.sleep(0.01)
 
 
