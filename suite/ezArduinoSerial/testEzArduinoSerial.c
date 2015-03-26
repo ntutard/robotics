@@ -13,9 +13,10 @@ int main(int argc,char **argv)
 
   while(1){
     if((read=readFromEzArduino(arduino_serial,buffer,100,'\n'))>0){
-      write(1,buffer,sizeof(char)*read);
+      write(2,buffer,sizeof(char)*read);
 
     }
+    
   
   }
   return EXIT_SUCCESS;

@@ -5,6 +5,9 @@ import json
 import pypot.dynamixel
 import pypot.dynamixel.conversion
 import pypot.robot.robot
+import signal
+import sys
+from parseArduino import *
 from pypot.dynamixel import autodetect_robot
 from pypot.robot import from_json
 from math import cos, sin, acos, asin
@@ -108,7 +111,9 @@ def suivreSinusoide(ids, frequence,amplitude,temps):
         
 ## FONCTIONS UTILES ##
 
-currentLegPositions = {};
+currentLegPositions = {}
+isInited = False
+spider_robot = None
 
 def moveLeg(leg, x, y, z):
     oldPos = []
@@ -119,6 +124,11 @@ def moveLeg(leg, x, y, z):
     co[0] += x
     co[1] += y
     co[2] += z
+
+    if (isInited):
+        currentLegPositions[getKeyForLeg(spider_robot, leg)][0] += x
+        currentLegPositions[getKeyForLeg(spider_robot, leg)][1] += y
+        currentLegPositions[getKeyForLeg(spider_robot, leg)][2] += z
 
     tmp = leg_ik(co[0],co[1],co[2])
     i = 0
@@ -163,46 +173,26 @@ def upAndDownLeg(leg):
     for m in leg :
         m.goal_position = 0
 
-def rotate2(spider_robot) :
-    waitTime = 0.35
+def spiderRotate(sr, clockSense) :
+    waitTime = 0.25
     moveY = -50
+    moveZ = 20
+
+    if (clockSense):
+        moveY = -moveY
 
     # First phase
-    
-    moveTwoLegs(spider_robot.leg1, spider_robot.leg2, 0, 0, 20)    
-    moveTwoLegs(spider_robot.leg32, spider_robot.leg41, 0,0,-10)
-    moveTwoLegs(spider_robot.leg42, spider_robot.leg31, 0,0,20)
-    time.sleep(waitTime)
 
-    moveTwoLegs(spider_robot.leg32, spider_robot.leg41, 0,moveY,0)
-    moveTwoLegs(spider_robot.leg42, spider_robot.leg31, 0,moveY,0)
-    
+    moveThreeLegs(sr.leg1, sr.leg31, sr.leg41, 0, -moveY, moveZ)
+    moveThreeLegs(sr.leg2, sr.leg32, sr.leg42, 0, moveY, 0)
     time.sleep(waitTime)
-
-    moveTwoLegs(spider_robot.leg32, spider_robot.leg41, 0,0,10)
-    moveTwoLegs(spider_robot.leg42, spider_robot.leg31, 0,0,-20)
-    moveTwoLegs(spider_robot.leg1, spider_robot.leg2, 0, 0, -20)
+    moveThreeLegs(sr.leg1, sr.leg31, sr.leg41, 0, 0, -moveZ)
+    time.sleep(0.1)
+    moveThreeLegs(sr.leg2, sr.leg32, sr.leg42, 0, -moveY, moveZ)
     time.sleep(waitTime)
-
-    # Second phase
-
-    moveTwoLegs(spider_robot.leg32, spider_robot.leg41, 0,0,20)
+    moveThreeLegs(sr.leg1, sr.leg31, sr.leg41, 0, moveY, 0)
+    moveThreeLegs(sr.leg2, sr.leg32, sr.leg42, 0, 0, -moveZ)
     time.sleep(waitTime)
-    
-    moveTwoLegs(spider_robot.leg32, spider_robot.leg41, 0,-moveY,0)
-
-
-    time.sleep(waitTime)
-
-    moveTwoLegs(spider_robot.leg32, spider_robot.leg41, 0,0,-20)
-    time.sleep(waitTime)
-    moveTwoLegs(spider_robot.leg42, spider_robot.leg31, 0,0,20)
-    time.sleep(waitTime)
-    moveTwoLegs(spider_robot.leg42, spider_robot.leg31, 0,-moveY,0)
-    time.sleep(waitTime)
-    moveTwoLegs(spider_robot.leg42, spider_robot.leg31, 0,0,-20)
-    time.sleep(waitTime)
-
     
 def setInit(spider_robot) :
     for m in spider_robot.thirdMotors :
@@ -232,22 +222,61 @@ def moveLegsRepere(sr, leg, moves, waitTime):
         time.sleep(waitTime)
         i += 1
     
-def spiderWalk(beginWalk, sr):
-    waitTime = 0.25
+def spiderWalk(beginWalk, direction, sr):    
+    coefX = 40
+    coefY = 40
+    coefZ = 15
+
+    if (direction =="forward"):
+            coefX = coefX
+            coefY = 0
+    elif (direction == "backward"):
+            coefX = coefX * -1
+            coefY = 0
+    elif direction == "left":
+            coefX = 0
+            coefY = coefY
+    elif direction == "right":
+            coefX = 0
+            coefY = coefY * -1
+    elif direction == "forwardright":
+            coefX = coefX
+            coefY = coefY *-1
+    elif (direction == "forwardleft"):
+            coefX = coefX
+            coefY = coefY
+    elif (direction == "backwardright"):
+            coefX = coefX*-1
+            coefY = coefY *-1
+    elif (direction == "backwardleft"):
+            coefX = coefX*-1
+            coefY = coefY
+    else:
+        return
+    
+    waitTime = 0.15
     legs1 = [sr.leg1, sr.leg31, sr.leg41]
     legs2 = [sr.leg2, sr.leg32, sr.leg42]
-
-    coefX = 40
-    coefZ = 15
     
     monter=[0,0,coefZ]
     doubleMonter = [0, 0, coefZ * 2]
     descendre=[0,0,-coefZ]
     doubleDescendre=[0, 0, -(coefZ * 2)]
-    avancer=[-coefX, 0, 0]
-    reculer=[coefX, 0, 0]
+    avancer=[-coefX, -coefY, 0]
+    reculer=[coefX, coefY, 0]
 
     if (beginWalk):
+        legs = [sr.leg1, sr.leg2, sr.leg31, sr.leg32, sr.leg41, sr.leg42]
+        for l in legs:
+                posLeg = currentLegPositions[getKeyForLeg(sr, l)]
+                tmpX = -posLeg[0]
+                tmpY = -posLeg[1]
+                tmpZ = -posLeg[2]
+
+                moveLeg(l, tmpX, tmpY, tmpZ)
+
+        time.sleep(0.20)
+                
         moveLegsRepere(sr, legs2, [monter], waitTime)
         
     moveLegsRepere(sr, legs1, [avancer], waitTime)
@@ -255,87 +284,80 @@ def spiderWalk(beginWalk, sr):
     moveLegsRepere(sr, legs1, [reculer], waitTime)
     moveLegsRepere(sr, legs2, [doubleMonter], waitTime)
 
+def stabilizeSpiderAfterWalking(sr):
+    legs2 = [sr.leg2, sr.leg32, sr.leg42]
+    coefZ = 15
+
+    descendre=[0,0,-coefZ]
+
+    moveLegsRepere(sr, legs2, [descendre], 0.15)
+
 def scorpionWalk(beginWalk, direction, sr):
         coefX=30
         coefY=30
+        
         if (direction =="forward"):
                 coefX = coefX
                 coefY = 0
-                print 'coefX :',coefX,'coefY :', coefY
         elif (direction == "backward"):
                 coefX = coefX * -1
                 coefY = 0
-                print 'coefX :',coefX,'coefY :', coefY
         elif direction == "left":
                 coefX = 0
                 coefY = coefY
-                print 'coefX :',coefX,'coefY :', coefY
         elif direction == "right":
                 coefX = 0
                 coefY = coefY * -1
-                print 'coefX :',coefX,'coefY :', coefY
         elif direction == "forwardright":
                 coefX = coefX
                 coefY = coefY *-1
-                print 'coefX :',coefX,'coefY :', coefY
         elif (direction == "forwardleft"):
                 coefX = coefX
                 coefY = coefY
-                print 'coefX :',coefX,'coefY :', coefY
         elif (direction == "backwardright"):
                 coefX = coefX*-1
                 coefY = coefY *-1
-                print 'coefX :',coefX,'coefY :', coefY
         elif (direction == "backwardleft"):
                 coefX = coefX*-1
                 coefY = coefY
-                print 'coefX :',coefX,'coefY :', coefY
-        coefZ = 30
-        waitFactor = 1.4
-
-        #if (direction == "forward" or direction == "backward"):
+                
+        coefZ = 35
+        waitFactor = 1.3
+        
         sr.motor_42.goal_position = -50
         sr.motor_43.goal_position = 120
         
         if (beginWalk):
-                moveLegsRepere(sr, [sr.leg42, sr.leg31], [[0, 0, coefZ]], 0)
-                moveLegsRepere(sr, [sr.leg32, sr.leg41], [[-coefX, 0, 0]], 0.15*waitFactor)
-                moveLegsRepere(sr, [sr.leg42, sr.leg31], [[0, 0, -coefZ]], 0.05*waitFactor)
+                legs = [sr.leg1, sr.leg2, sr.leg31, sr.leg32, sr.leg41, sr.leg42]
+                for l in legs:
+                        posLeg = currentLegPositions[getKeyForLeg(sr, l)]
+                        tmpX = -posLeg[0]
+                        tmpY = -posLeg[1]
+                        tmpZ = -posLeg[2]
 
+                        moveLeg(l, tmpX, tmpY, tmpZ)
+
+                time.sleep(0.20)
+                
+                moveLegsRepere(sr, [sr.leg42, sr.leg31], [[0, 0, coefZ]], 0)
+                moveLegsRepere(sr, [sr.leg32, sr.leg41], [[-coefX, -coefY, 0]], 0.15*waitFactor)
+                moveLegsRepere(sr, [sr.leg42, sr.leg31], [[0, 0, -coefZ]], 0.05*waitFactor)
+        
         moveLegsRepere(sr, [sr.leg32, sr.leg41], [[0, 0, coefZ]], 0)
-        moveLegsRepere(sr, [sr.leg42, sr.leg31], [[-coefX, 0, 0]], 0.05*waitFactor)
-        moveLegsRepere(sr, [sr.leg32, sr.leg41], [[coefX, 0, 0]], 0.10*waitFactor)
+        moveLegsRepere(sr, [sr.leg42, sr.leg31], [[-coefX, -coefY, 0]], 0.05*waitFactor)
+        moveLegsRepere(sr, [sr.leg32, sr.leg41], [[coefX, coefY, 0]], 0.10*waitFactor)
         moveLegsRepere(sr, [sr.leg32, sr.leg41], [[0, 0, -coefZ]], 0.05*waitFactor)
 
         sr.motor_42.goal_position = -70
         sr.motor_43.goal_position = 135
 
         moveLegsRepere(sr, [sr.leg31, sr.leg42], [[0, 0, coefZ]], 0)
-        moveLegsRepere(sr, [sr.leg41, sr.leg32], [[-coefX, 0, 0]], 0.05*waitFactor)
-        moveLegsRepere(sr, [sr.leg31, sr.leg42], [[coefX, 0, 0]], 0.10*waitFactor)
+        moveLegsRepere(sr, [sr.leg41, sr.leg32], [[-coefX, -coefY, 0]], 0.05*waitFactor)
+        moveLegsRepere(sr, [sr.leg31, sr.leg42], [[coefX, coefY, 0]], 0.10*waitFactor)
         moveLegsRepere(sr, [sr.leg31, sr.leg42], [[0, 0, -coefZ]], 0.05*waitFactor)
-            
-        # else :
-            
-        #     if (beginWalk):
-        #             moveLegsRepere(sr, [sr.leg42, sr.leg31], [[0, 0, coefZ]], 0)
-        #             moveLegsRepere(sr, [sr.leg32, sr.leg41], [[-coefX, -coefY, 0]], 0.15*waitFactor)
-        #             moveLegsRepere(sr, [sr.leg42, sr.leg31], [[0, 0, -coefZ]], 0.05*waitFactor)
-                    
-        #     moveLegsRepere(sr, [sr.leg32, sr.leg41], [[0, 0, coefZ]], 0)
-        #     moveLegsRepere(sr, [sr.leg42, sr.leg31], [[-coefX, -coefY, 0]], 0.05*waitFactor)
-        #     moveLegsRepere(sr, [sr.leg32, sr.leg41], [[coefX, coefY, 0]], 0.10*waitFactor)
-        #     moveLegsRepere(sr, [sr.leg32, sr.leg41], [[0, 0, -coefZ]], 0.05*waitFactor)
 
-        #     sr.motor_42.goal_position = -70
-        #     sr.motor_43.goal_position = 135
-
-        #     moveLegsRepere(sr, [sr.leg31, sr.leg42], [[0, 0, coefZ]], 0)
-        #     moveLegsRepere(sr, [sr.leg41, sr.leg32], [[-coefX, -coefY, 0]], 0.05*waitFactor)
-        #     moveLegsRepere(sr, [sr.leg31, sr.leg42], [[coefX, coefY, 0]], 0.10*waitFactor)
-        #     moveLegsRepere(sr, [sr.leg31, sr.leg42], [[0, 0, -coefZ]], 0.05*waitFactor)
+        time.sleep(0.1 * waitFactor)
             
-
 def spiderMode(sr):
         setInit(sr)
 
@@ -345,6 +367,10 @@ def spiderMode(sr):
 
         moveLegsRepere(sr, [sr.leg32, sr.leg42], [[50, 0, 0]], 0)
         moveLegsRepere(sr, [sr.leg31, sr.leg41], [[-50, 0, 0]], 0)
+
+        legs = [sr.leg1, sr.leg2, sr.leg31, sr.leg32, sr.leg41, sr.leg42]
+        for l in legs:
+            currentLegPositions[getKeyForLeg(spider_robot, l)] = [0] * 3
 
 def scorpionMode(sr):
         setInit(sr)
@@ -366,6 +392,10 @@ def scorpionMode(sr):
         sr.motor_43.goal_speed = 35
         sr.motor_42.goal_position = -70
         sr.motor_43.goal_position = 135
+        
+        legs = [sr.leg1, sr.leg2, sr.leg31, sr.leg32, sr.leg41, sr.leg42]
+        for l in legs:
+            currentLegPositions[getKeyForLeg(spider_robot, l)] = [0] * 3
 
 def getKeyForLeg(sr, l):
     if (l == sr.leg1):
@@ -385,6 +415,7 @@ def getKeyForLeg(sr, l):
         
         
 if __name__ == '__main__':
+          
 
         state = "waiting"
 
@@ -396,15 +427,14 @@ if __name__ == '__main__':
         print(currentLegPositions)
         
         spider_robot=from_json('spider_robot.json')
-
-        legs = [spider_robot.leg1, spider_robot.leg2, spider_robot.leg31, spider_robot.leg32, spider_robot.leg41, spider_robot.leg42]
-        for l in legs:
-            currentLegPositions[getKeyForLeg(spider_robot, l)] = [0] * 3
+        p=Popen('./ezArduinoSerial/testEzArduinoSerial',stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
             
         print(currentLegPositions)
         
         scorpionMode(spider_robot)
+        inputMode = "keyboard"
         mode="scorpion"
+        isInited = True
         time.sleep(1)
 
         import sys, tty, termios
@@ -413,12 +443,15 @@ if __name__ == '__main__':
         ch = ''
 
         while (ch != 'q' and ch != 'Q'):
+            if (inputMode == "keyboard"):
                 try:
                         tty.setraw(sys.stdin.fileno())  
                         ch = sys.stdin.read(1)
                 finally:
                         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-                if (mode == "scorpion") :
+                if (ch == '!'):
+                    inputMode = "arduino"
+                elif (mode == "scorpion") :
                             if (ch == '8' or ch == 't' or ch == 'T'):
                                     print("Forward Walking")
                                     if (state == "forwardWalking"):
@@ -497,82 +530,105 @@ if __name__ == '__main__':
                                     mode="spider"
                                     spiderMode(spider_robot)
                 elif (mode=="spider"):
-                            if (ch == '8' or ch == 't' or ch == 'T'):
+                            if (state == "rotation"):
+                                if (ch == '5' or ch == 'g' or ch =='G'):
+                                    print("Rotation Mode stopped")
+                                    state = "waiting"
+                                elif (ch == '4' or ch == 'f' or ch == 'F'):
+                                    spiderRotate(spider_robot, False)
+                                elif (ch == '6' or ch == 'h' or ch == 'H'):
+                                    spiderRotate(spider_robot, True)
+                                
+                            elif (ch == '8' or ch == 't' or ch == 'T'):
                                     print("Forward Walking")
-                                    if (state == "forwardWalking"):
-                                        spiderWalk(False,spider_robot)
+                                    if (state == "walking"):
+                                        spiderWalk(False, "forward", spider_robot)
                                     else:
-                                        spiderWalk(True, spider_robot)
-                                        state = "forwardWalking"
+                                        spiderWalk(True, "forward", spider_robot)
+                                        state = "walking"
                                     print("End Walking")
                                     
                             elif (ch == '2' or ch == 'b' or ch =='B'):
                                     print("Backward Walking")
-                                    if (state == "backwardWalking"):
-                                        scorpionWalk(False,"backward",spider_robot)
+                                    if (state == "walking"):
+                                        spiderWalk(False,"backward",spider_robot)
                                     else :
-                                        scorpionWalk(True, "backward", spider_robot)
-                                        state = "backwardWalking"
+                                        spiderWalk(True, "backward", spider_robot)
+                                        state = "walking"
                                         
                             elif (ch == '4' or ch == 'f' or ch == 'F'):
                                     print("Left Walking")
-                                    if (state == "leftWalking"):
-                                        scorpionWalk(False,"left",spider_robot)
+                                    if (state == "walking"):
+                                        spiderWalk(False,"left",spider_robot)
                                     else :
-                                        scorpionWalk(True, "left", spider_robot)
-                                        state = "leftWalking"
+                                        spiderWalk(True, "left", spider_robot)
+                                        state = "walking"
                                         
                             elif (ch == '6' or ch == 'h' or ch =='H'):
                                     print("Right  Walking")
-                                    if (state == "rightWalking"):
-                                        scorpionWalk(False,"right",spider_robot)
+                                    if (state == "walking"):
+                                        spiderWalk(False,"right",spider_robot)
                                     else :
-                                        scorpionWalk(True, "right", spider_robot)
-                                        state = "rightWalking"
+                                        spiderWalk(True, "right", spider_robot)
+                                        state = "walking"
                                         
                             elif (ch == '7' or ch == 'r' or ch =='R'):
                                     print("Forward Left  Walking")
-                                    if (state == "forwardLeftWalking"):
-                                        scorpionWalk(False,"forwardleft",spider_robot)
+                                    if (state == "walking"):
+                                        spiderWalk(False,"forwardleft",spider_robot)
                                     else :
-                                        scorpionWalk(True, "forwardleft", spider_robot)
-                                        state = "forwardLeftWalking"
+                                        spiderWalk(True, "forwardleft", spider_robot)
+                                        state = "walking"
                                             
                             elif (ch == '9' or ch == 'y' or ch =='Y'):
                                     print("Forward Right  Walking")
-                                    if (state == "forwardRightWalking"):
-                                        scorpionWalk(False,"forwardright",spider_robot)
+                                    if (state == "walking"):
+                                        spiderWalk(False,"forwardright",spider_robot)
                                     else :
-                                        scorpionWalk(True, "forwardright", spider_robot)
-                                        state = "forwardRightWalking"
+                                        spiderWalk(True, "forwardright", spider_robot)
+                                        state = "walking"
                                             
                             elif (ch == '1' or ch == 'v' or ch =='V'):
                                     print("Backward Left  Walking")
-                                    if (state == "backwardLeftWalking"):
-                                        scorpionWalk(False,"backwardleft",spider_robot)
+                                    if (state == "walking"):
+                                        spiderWalk(False,"backwardleft",spider_robot)
                                     else :
-                                        scorpionWalk(True, "backwardleft", spider_robot)
-                                        state = "backwardLeftWalking"
+                                        spiderWalk(True, "backwardleft", spider_robot)
+                                        state = "walking"
                                             
                             elif (ch == '3' or ch == 'n' or ch =='N'):
                                     print("Backward right  Walking")
-                                    if (state == "backwardRightWalking"):
-                                        scorpionWalk(False,"backwardright",spider_robot)
+                                    if (state == "walking"):
+                                        spiderWalk(False,"backwardright",spider_robot)
                                     else :
-                                        scorpionWalk(True, "backwardright", spider_robot)
-                                        state = "backwardRightWalking"
+                                        spiderWalk(True, "backwardright", spider_robot)
+                                        state = "walking"
                             elif (ch == '5' or ch == 'g' or ch =='G'):
-                                    print("rotate")
-                                    if (state == "rotate"):
-                                        #rotation scorpion mode
-                                        print "toh"
-                                    else :
-                                        #rotation scorpion mode
-                                        state = "rotate"
+                                    print("Rotation mode")
+                                    if (state == "walking"):
+                                        stabilizeSpiderAfterWalking(spider_robot)
+                                    state = "rotation"
                             elif (ch == '0' or ch == 'c' or ch =='c'):
-                                    print("Changing to spider mode")
+                                    print("Changing to scorpion mode")
                                     mode="scorpion"
                                     scorpionMode(spider_robot)
+            else:
+                print("FAMILLE MODE")
+                
+                p.send_signal(signal.SIGSTOP)
+                while p.stderr.readable() is False:
+                    value=p.stderr.readline()
+                    
+                p.send_signal(signal.SIGCONT)
+                parsed=parseArduino(value)
+                if parsed != None:
+                    if (mode == "spider"):
+                        print(direction(parsed))
+                        if (state == "walking"):
+                            spiderWalk(False, direction(parsed), spider_robot)
+                        else:
+                            spiderWalk(True, direction(parsed), spider_robot)
+                            state = "walking"
                                             
                                             
 

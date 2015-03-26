@@ -24,29 +24,19 @@ def direction(tabPosition):
     elif (tabDirection == [1,0]):
         return "forward"
     elif (tabDirection == [1,1]):
-        return "forwardRight"
+        return "forwardright"
     elif (tabDirection == [1,-1]):
-        return "forwardLeft"
+        return "forwardleft"
     elif (tabDirection == [-1,0]):
         return "backward"
     elif (tabDirection == [-1,1]):
-        return "backwardRight"
+        return "backwardright"
     elif (tabDirection == [-1,-1]):
-        return "backwardLeft"
+        return "backwardleft"
     
 def parseArduino(msg):
     msgsplited=msg.split('#',1)
-    if(len(msgsplited)==2):
+    if(len(msgsplited)==2 and len(msgsplited[0]) > 0 and len(msgsplited[1]) > 0):
         return [int(msgsplited[0]),int(msgsplited[1])]
     return None
 
-
-while(True):
-    #call('/home/louis/programmation/arduinoProgrammation/src/ezArduinoSerial/testEzArduinoSerial')
-    p=Popen('/home/louis/programmation/arduinoProgrammation/src/ezArduinoSerial/testEzArduinoSerial',stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-    while(True):
-          value=p.stdout.readline()
-          print value
-          parsed=parseArduino(value)
-          if parsed != None:
-             print direction(parsed)
