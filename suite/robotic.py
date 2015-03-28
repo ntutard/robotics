@@ -8,11 +8,13 @@ import pypot.robot.robot
 import signal
 import sys
 from parseArduino import *
+from threadArduino import *
 from pypot.dynamixel import autodetect_robot
 from pypot.robot import from_json
 from math import cos, sin, acos, asin
 from indirect import *
 import math
+
 
 def leg_dk(T1,T2,T3,L1 = 51,L2 = 63.7, L3 =93, a=None, b=None ):
     if a == None:
@@ -252,6 +254,7 @@ def spiderWalk(beginWalk, direction, sr):
             coefX = coefX*-1
             coefY = coefY
     else:
+        print("MOVEMENT NOT IMPLEMENTED : "+direction+"\n")
         return
     
     waitTime = 0.15
@@ -292,7 +295,7 @@ def stabilizeSpiderAfterWalking(sr):
 
     moveLegsRepere(sr, legs2, [descendre], 0.15)
 
-def scorpionWalk(beginWalk, direction, sr):
+def scorpionWalk(previousState, direction, sr):
         coefX=30
         coefY=30
         
@@ -320,6 +323,9 @@ def scorpionWalk(beginWalk, direction, sr):
         elif (direction == "backwardleft"):
                 coefX = coefX*-1
                 coefY = coefY
+        else:
+            print("MOVEMENT NOT IMPLEMENTED : "+direction+"\n")
+            return 
                 
         coefZ = 35
         waitFactor = 1.3
@@ -327,7 +333,7 @@ def scorpionWalk(beginWalk, direction, sr):
         sr.motor_42.goal_position = -50
         sr.motor_43.goal_position = 120
         
-        if (beginWalk):
+        if (previousState != direction):
                 legs = [sr.leg1, sr.leg2, sr.leg31, sr.leg32, sr.leg41, sr.leg42]
                 for l in legs:
                         posLeg = currentLegPositions[getKeyForLeg(sr, l)]
@@ -397,6 +403,68 @@ def scorpionMode(sr):
         for l in legs:
             currentLegPositions[getKeyForLeg(spider_robot, l)] = [0] * 3
 
+def spiderMovement(currentState,nextState,spider_robot):
+    if ("walking" in currentState and "rotate" not in nextState):
+        spiderWalk(False,nextState,spider_robot)
+    elif ("walking" not in currentState and "rotate" not in nextState):
+        spiderWalk(True,nextState,spider_robot)
+        
+    
+def scorpionMovement(currentState,nextState,spider_robot):
+    if(currentState != nextState and "rotate" not in nextState ):
+        scorpionWalk(False,nextState,spider_robot)
+    elif (currentState == nextState and "rotate" not in nextState ):
+        scorpionWalk(True,nextState,spider_robot)
+        
+def getNextStateFromArduinoInput(ch,currentState):
+    return None
+    ##TODO
+
+def getNextStateFromInput(ch,currentState,inputMode):
+    if inputMode == "arduino":
+        return getNextStateFromArduinoInput(ch,currentState)
+    elif inputMode == "keyboard":
+        return getNextStateFromKeyboardInput(ch,currentState)
+    else:
+        print("Bad inputMode !\n")
+        return None
+def getNextStateFromKeyboardInput(ch,currentState):
+   
+    if (ch == '8' or ch == 't' or ch == 'T'):
+        nextState="forwardwalking"
+      
+    elif (ch == '2' or ch == 'b' or ch =='B'):
+        nextState="backwardwalking"
+    elif (ch == '4' or ch == 'f' or ch == 'F'):
+        if "rotate" not in currentState :
+            nextState="leftwalking"
+        else:
+            nextState="rotationleft"
+    elif (ch == '6' or ch == 'h' or ch =='H'):
+        if "rotate" not in currentState :
+            nextState="right"
+        else :
+            nextState="rotationright"
+    elif (ch == '7' or ch == 'r' or ch =='R'):
+        nextState="forwardleftwalking"
+    elif (ch == '9' or ch == 'y' or ch =='Y'):
+        nextState = "forwardrightwalking"
+            
+    elif (ch == '1' or ch == 'v' or ch =='V'):
+        nextState = "backwardleftwalking"
+            
+    elif (ch == '3' or ch == 'n' or ch =='N'):
+        nextState = "backwardrightwalking"
+    elif (ch == '5' or ch == 'g' or ch =='G'):
+        if currentState != "rotate":
+            nextState="rotate"
+        else :
+            nextState="waiting"
+    else:
+        nextState=None
+   
+    return nextState
+    
 def getKeyForLeg(sr, l):
     if (l == sr.leg1):
         return 'leg1'
@@ -417,7 +485,9 @@ def getKeyForLeg(sr, l):
 if __name__ == '__main__':
           
 
-        state = "waiting"
+
+        nextState=None
+        currentState="waiting"
 
         #with pypot.dynamixel.DxlIO('/dev/ttyUSB0', baudrate=1000000) as dxl_io:
         #        found_ids = dxl_io.scan()  # this may take several seconds
@@ -427,13 +497,18 @@ if __name__ == '__main__':
         print(currentLegPositions)
         
         spider_robot=from_json('spider_robot.json')
-        p=Popen('./ezArduinoSerial/testEzArduinoSerial',stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-            
+                    
         print(currentLegPositions)
         
         scorpionMode(spider_robot)
         inputMode = "keyboard"
         mode="scorpion"
+
+        #Launch PollArduino thread 
+        arduinoThread=PollArduino()
+        arduinoThread.start()
+        ##
+        
         isInited = True
         time.sleep(1)
 
@@ -443,194 +518,51 @@ if __name__ == '__main__':
         ch = ''
 
         while (ch != 'q' and ch != 'Q'):
+
+            ## Get input from arduino or keyboard (default keyboard)
             if (inputMode == "keyboard"):
                 try:
                         tty.setraw(sys.stdin.fileno())  
                         ch = sys.stdin.read(1)
                 finally:
                         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-                if (ch == '!'):
-                    inputMode = "arduino"
-                elif (mode == "scorpion") :
-                            if (ch == '8' or ch == 't' or ch == 'T'):
-                                    print("Forward Walking")
-                                    if (state == "forwardWalking"):
-                                        scorpionWalk(False, "forward", spider_robot)
-                                    else:
-                                        scorpionWalk(True, "forward", spider_robot)
-                                        state = "forwardWalking"
-                                    print("End Walking")
-                                    
-                            elif (ch == '2' or ch == 'b' or ch =='B'):
-                                    print("Backward Walking")
-                                    if (state == "backWardWalking"):
-                                        scorpionWalk(False,"backward",spider_robot)
-                                    else :
-                                        scorpionWalk(True, "backward", spider_robot)
-                                        state = "backwardWalking"
-                                        
-                            elif (ch == '4' or ch == 'f' or ch == 'F'):
-                                    print("Left Walking")
-                                    if (state == "leftWalking"):
-                                        scorpionWalk(False,"left",spider_robot)
-                                    else :
-                                        scorpionWalk(True, "left", spider_robot)
-                                        state = "leftWalking"
-                                        
-                            elif (ch == '6' or ch == 'h' or ch =='H'):
-                                    print("Right  Walking")
-                                    if (state == "rightWalking"):
-                                        scorpionWalk(False,"right",spider_robot)
-                                    else :
-                                        scorpionWalk(True, "right", spider_robot)
-                                        state = "rightWalking"
-                                        
-                            elif (ch == '7' or ch == 'r' or ch =='R'):
-                                    print("Forward Left  Walking")
-                                    if (state == "forwardLeftWalking"):
-                                        scorpionWalk(False,"forwardleft",spider_robot)
-                                    else :
-                                        scorpionWalk(True, "forwardleft", spider_robot)
-                                        state = "forwardLeftWalking"
-                                            
-                            elif (ch == '9' or ch == 'y' or ch =='Y'):
-                                    print("Forward Right  Walking")
-                                    if (state == "forwardright"):
-                                        scorpionWalk(False,"forwardright",spider_robot)
-                                    else :
-                                        scorpionWalk(True, "forwardright", spider_robot)
-                                        state = "forwardright"
-                                            
-                            elif (ch == '1' or ch == 'v' or ch =='V'):
-                                    print("Backward Left  Walking")
-                                    if (state == "backwardLeftWalking"):
-                                        scorpionWalk(False,"backwardleft",spider_robot)
-                                    else :
-                                        scorpionWalk(True, "backwardleft", spider_robot)
-                                        state = "backwardLeftWalking"
-                                            
-                            elif (ch == '3' or ch == 'n' or ch =='N'):
-                                    print("Backward right  Walking")
-                                    if (state == "backwardRightWalking"):
-                                        scorpionWalk(False,"backwardright",spider_robot)
-                                    else :
-                                        scorpionWalk(True, "backwardright", spider_robot)
-                                        state = "backwardRightWalking"
-                                        
-                            elif (ch == '5' or ch == 'g' or ch =='G'):
-                                    print("rotate")
-                                    if (state == "rotate"):
-                                        #rotation scorpion mode
-                                        print "gijzeorg"
-                                    else :
-                                        #rotation scorpion mode
-                                        state = "rotate"
-                            elif (ch == '0' or ch == 'c' or ch =='c'):
-                                    print("Changing to spider mode")
-                                    mode="spider"
-                                    spiderMode(spider_robot)
-                elif (mode=="spider"):
-                            if (state == "rotation"):
-                                if (ch == '5' or ch == 'g' or ch =='G'):
-                                    print("Rotation Mode stopped")
-                                    state = "waiting"
-                                elif (ch == '4' or ch == 'f' or ch == 'F'):
-                                    spiderRotate(spider_robot, False)
-                                elif (ch == '6' or ch == 'h' or ch == 'H'):
-                                    spiderRotate(spider_robot, True)
-                                
-                            elif (ch == '8' or ch == 't' or ch == 'T'):
-                                    print("Forward Walking")
-                                    if (state == "walking"):
-                                        spiderWalk(False, "forward", spider_robot)
-                                    else:
-                                        spiderWalk(True, "forward", spider_robot)
-                                        state = "walking"
-                                    print("End Walking")
-                                    
-                            elif (ch == '2' or ch == 'b' or ch =='B'):
-                                    print("Backward Walking")
-                                    if (state == "walking"):
-                                        spiderWalk(False,"backward",spider_robot)
-                                    else :
-                                        spiderWalk(True, "backward", spider_robot)
-                                        state = "walking"
-                                        
-                            elif (ch == '4' or ch == 'f' or ch == 'F'):
-                                    print("Left Walking")
-                                    if (state == "walking"):
-                                        spiderWalk(False,"left",spider_robot)
-                                    else :
-                                        spiderWalk(True, "left", spider_robot)
-                                        state = "walking"
-                                        
-                            elif (ch == '6' or ch == 'h' or ch =='H'):
-                                    print("Right  Walking")
-                                    if (state == "walking"):
-                                        spiderWalk(False,"right",spider_robot)
-                                    else :
-                                        spiderWalk(True, "right", spider_robot)
-                                        state = "walking"
-                                        
-                            elif (ch == '7' or ch == 'r' or ch =='R'):
-                                    print("Forward Left  Walking")
-                                    if (state == "walking"):
-                                        spiderWalk(False,"forwardleft",spider_robot)
-                                    else :
-                                        spiderWalk(True, "forwardleft", spider_robot)
-                                        state = "walking"
-                                            
-                            elif (ch == '9' or ch == 'y' or ch =='Y'):
-                                    print("Forward Right  Walking")
-                                    if (state == "walking"):
-                                        spiderWalk(False,"forwardright",spider_robot)
-                                    else :
-                                        spiderWalk(True, "forwardright", spider_robot)
-                                        state = "walking"
-                                            
-                            elif (ch == '1' or ch == 'v' or ch =='V'):
-                                    print("Backward Left  Walking")
-                                    if (state == "walking"):
-                                        spiderWalk(False,"backwardleft",spider_robot)
-                                    else :
-                                        spiderWalk(True, "backwardleft", spider_robot)
-                                        state = "walking"
-                                            
-                            elif (ch == '3' or ch == 'n' or ch =='N'):
-                                    print("Backward right  Walking")
-                                    if (state == "walking"):
-                                        spiderWalk(False,"backwardright",spider_robot)
-                                    else :
-                                        spiderWalk(True, "backwardright", spider_robot)
-                                        state = "walking"
-                            elif (ch == '5' or ch == 'g' or ch =='G'):
-                                    print("Rotation mode")
-                                    if (state == "walking"):
-                                        stabilizeSpiderAfterWalking(spider_robot)
-                                    state = "rotation"
-                            elif (ch == '0' or ch == 'c' or ch =='c'):
-                                    print("Changing to scorpion mode")
-                                    mode="scorpion"
-                                    scorpionMode(spider_robot)
-            else:
-                print("FAMILLE MODE")
+            elif (inputMode == "arduino"): 
+                ## TODO = keep reading keyboard here in order to stop arduino mode if not responding 
+                ##Get the last value read by PollArduino ( no buffering ) , parse the packet and 
+                ##get the direction. ch == None if parse or direction or getValue failed .
+                ch=direction(parseArduino(arduinoThread.getValue()))
                 
-                p.send_signal(signal.SIGSTOP)
-                while p.stderr.readable() is False:
-                    value=p.stderr.readline()
-                    
-                p.send_signal(signal.SIGCONT)
-                parsed=parseArduino(value)
-                if parsed != None:
-                    if (mode == "spider"):
-                        print(direction(parsed))
-                        if (state == "walking"):
-                            spiderWalk(False, direction(parsed), spider_robot)
-                        else:
-                            spiderWalk(True, direction(parsed), spider_robot)
-                            state = "walking"
-                                            
-                                            
+            
+            
+            ## Input mode change 
+            if (ch == '!'):
+                inputMode = "arduino"
+                print("Arduino input mode")
+            
+            ## spider_robot mode change
+            elif (ch == '0' or ch == 'c' or ch =='c'):
+                print("Changing to spider mode")
+                mode="spider"
+                spiderMode(spider_robot)
+            ## symbole to direction ( work with arduino and keyboard)
+            nextState=getNextStateFromInput(ch,currentState,inputMode)
+            ## If symbole is found
+            if(nextState != None):
+                if (mode == "scorpion") :
+                    scorpion(currentState,nextState,spider_robot)
+                elif (mode=="spider"):
+                    spider(currentState,nextState,spider_robot)
+                    if( "rotate" in nextState and "rotate" not in currentState):
+                        stabilizeSpiderAfterWalking(spider_robot)
+                    if(nextState == "rotateleft"):
+                        spiderRotate(spider_robot, False)
+                    elif (nextState == "rotateright"):
+                        spiderRotate(spider_robot, True)
+                ## if nextState != None , update current state .
+                currentState = nextState
+
+           
+                        
 
         print("Deconnexion")
         setInit(spider_robot);

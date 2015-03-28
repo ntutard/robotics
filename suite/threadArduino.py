@@ -22,6 +22,7 @@ class PollArduino(Thread):
             return s
         else:
             print "Thread not started !\n"
+            return None
 
 # p=PollArduino()
 # p.start()
