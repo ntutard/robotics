@@ -232,28 +232,28 @@ def spiderWalk(beginWalk, direction, sr):
     coefY = 40
     coefZ = 15
 
-    if (direction =="forward"):
+    if (direction =="forwardwalking"):
             coefX = coefX
             coefY = 0
-    elif (direction == "backward"):
+    elif (direction == "backwardwalking"):
             coefX = coefX * -1
             coefY = 0
-    elif direction == "left":
+    elif direction == "leftwalking":
             coefX = 0
             coefY = coefY
-    elif direction == "right":
+    elif direction == "rightwalking":
             coefX = 0
             coefY = coefY * -1
-    elif direction == "forwardright":
+    elif direction == "forwardrightwalking":
             coefX = coefX
             coefY = coefY *-1
-    elif (direction == "forwardleft"):
+    elif (direction == "forwardleftwalking"):
             coefX = coefX
             coefY = coefY
-    elif (direction == "backwardright"):
+    elif (direction == "backwardrightwalking"):
             coefX = coefX*-1
             coefY = coefY *-1
-    elif (direction == "backwardleft"):
+    elif (direction == "backwardleftwalking"):
             coefX = coefX*-1
             coefY = coefY
     else:
@@ -302,30 +302,32 @@ def scorpionWalk(previousState, direction, sr):
         coefX=30
         coefY=30
         
-        if (direction =="forward"):
-                coefX = coefX
-                coefY = 0
-        elif (direction == "backward"):
-                coefX = coefX * -1
-                coefY = 0
-        elif direction == "left":
-                coefX = 0
-                coefY = coefY
-        elif direction == "right":
-                coefX = 0
-                coefY = coefY * -1
-        elif direction == "forwardright":
-                coefX = coefX
-                coefY = coefY *-1
-        elif (direction == "forwardleft"):
-                coefX = coefX
-                coefY = coefY
-        elif (direction == "backwardright"):
-                coefX = coefX*-1
-                coefY = coefY *-1
-        elif (direction == "backwardleft"):
-                coefX = coefX*-1
-                coefY = coefY
+        if (direction =="forwardwalking"):
+            coefX = coefX
+            coefY = 0
+        elif (direction == "backwardwalking"):
+            coefX = coefX * -1
+            coefY = 0
+        elif direction == "leftwalking":
+            coefX = 0
+            coefY = coefY
+        elif direction == "rightwalking":
+            coefX = 0
+            coefY = coefY * -1
+        elif direction == "forwardrightwalking":
+            coefX = coefX
+            coefY = coefY *-1
+        elif (direction == "forwardleftwalking"):
+            coefX = coefX
+            coefY = coefY
+        elif (direction == "backwardrightwalking"):
+            coefX = coefX*-1
+            coefY = coefY *-1
+        elif (direction == "backwardleftwalking"):
+            coefX = coefX*-1
+            coefY = coefY
+        elif (direction == "freewalking"):
+            
         else:
             print("MOVEMENT NOT IMPLEMENTED : "+direction+"\n")
             return 
