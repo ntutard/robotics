@@ -593,7 +593,7 @@ if __name__ == '__main__':
                 spiderMode(spider_robot)
             ## symbole to direction ( work with arduino and keyboard)
             oldcurrentMode=currentSubMode
-            currentSubMode = getSubModeFromArduinoInput(ch,currentSubMode,currentSubMode,inputMode)
+            currentSubMode = getSubModeFromInput(ch,currentSubMode,currentSubMode,inputMode)
 
             nextState=getNextStateFromInput(ch,currentState,currentSubMode,inputMode)
             ## If symbole is found
