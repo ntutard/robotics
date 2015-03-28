@@ -9,9 +9,16 @@ UNLOCK_BUTTONS=[True,True,True,True,True]
 BUTTONS_NAMES=["Joystick button","switch_down button","switch_left button","switch_up button","switch_right button"]
 
 ## [0,6[ , one button <=> one action 
-BUTTONS_ROTATE_SWITCH=0
-BUTTONS_SWITCH_MODE=1
-BUTTONS_FREE_WALKING=2
+BUTTON_JOYSTICK=0
+BUTTON_SWITCH_DOWN=1
+BUTTON_SWITCH_LEFT=2
+BUTTON_SWITCH_UP=3
+BUTTON_SWITCH_RIGHT=4
+
+BUTTONS_ROTATE_SWITCH=BUTTON_JOYSTICK
+BUTTONS_SWITCH_MODE=BUTTON_SWITCH_DOWN
+BUTTONS_FREE_WALKING=BUTTON_SWITCH_LEFT
+
 
 
 ## Get the tab with 5 buttons values , 1 == pressed . 

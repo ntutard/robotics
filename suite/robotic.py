@@ -17,6 +17,9 @@ import math
 
 ## print input results
 DEBUG_INPUT = True
+WALK_MODE="walkmode"
+ROTATE_MODE="rotatemode"
+FREE_WALK_MODE="freewalkmode"
 def leg_dk(T1,T2,T3,L1 = 51,L2 = 63.7, L3 =93, a=None, b=None ):
     if a == None:
         a = asin(22.5/L2)
@@ -410,62 +413,27 @@ def scorpionMode(sr):
         for l in legs:
             currentLegPositions[getKeyForLeg(spider_robot, l)] = [0] * 3
 
-def spiderMovement(currentState,nextState,spider_robot,inputMode,arduinoValue=None):
-    if ("walking" in currentState and "rotate" not in nextState ):
-        if(nextState != "freewalking"):
-            spiderWalk(False,nextState,spider_robot)
-        elif (inputMode == "arduino"):
-            spiderFreeWalk(False,nextState,spider_robot,arduinoValue)
-    elif ("walking" not in currentState and "rotate" not in nextState):
-        if (nextState != "freewalking"):
-            spiderWalk(True,nextState,spider_robot)
-        elif (inputMode == "arduino"):
-            spiderFreeWalk(True,nextState,spider_robot,arduinoValue)
-        
+def spiderMovement(currentState,nextState,spider_robot):
+
+                
     
-def scorpionMovement(currentState,nextState,spider_robot,inputMode,arduinoValue=None):
-    if(currentState != nextState and "rotate" not in nextState):
-        if nextState != "freewalking"):
-            scorpionWalk(False,nextState,spider_robot)
-        elif inputMode == "arduino"
-            scorpionFreeWalk(False,nextState,spider_robot,arduinoValue)
-            
-    elif (currentState == nextState and "rotate" not in nextState ):
-        if (nextState != "freewalking"):
-            scorpionWalk(True,nextState,spider_robot)
-        elif inputMode == "arduino"
-            scorpionFreeWalk(True,nextState,spider_robot,arduinoValue)
+def scorpionMovement(currentState,nextState,spider_robot):
+  
+       # elif inputMode == "arduino"
+        #    scorpionFreeWalk(True,nextState,spider_robot,arduinoValue)
     
         
-def getNextStateFromArduinoInput(value,currentState):
-    ##Get the BUTTONS_ROTATE_SWITCH pressed == switch between rotation mode and walk mode
-    rotate=buttons(value)[BUTTONS_ROTATE_SWITCH] == 1
-    freeWalking=buttons(value)[BUTTONS_FREE_WALKING]== 1
-    ## In case of BUTTONS_ROTATE_SWITCH pressed
-    if rotate :
-        if "rotate" not in currentState:
-            nextState = "rotateangle"
-        else:
-            nextState = "waiting"
-        return nextState
-    ## In case of BUTTONS_FREE_WALKING pressed 
-    elif freeWalking :
-        if "freewalking" not in currentState:
-            nextState="freewalking"
-        else:
-            nextState = "waiting"
-        return nextState
-        
-    ## otherwise we read direction from analog joystick
+def getNextStateFromArduinoInput(value,currentState,currentMode):
+    
     ch = direction(value)
-    elif ch == "leftwalking":
-        if "rotate" in currentState:
+    if ch == "leftwalking":
+        if currentMode == ROTATE_MODE:
             nextState="rotateleft"
     elif ch == "rightwalking":
-        if "rotate" in currentState:
+        if currentMode== ROTATE_MODE:
             nextState = "rotateright"
-    elif ch == None or ch == "waiting":
-        nextState = None
+    elif ch == "waiting":## XXX Arduino can't wait because it always send data.
+        nextState = currentState
     else:
         nextState = ch
     if(DEBUG_INPUT):
@@ -473,29 +441,57 @@ def getNextStateFromArduinoInput(value,currentState):
     return nextState
         
 
-
-def getNextStateFromInput(ch,currentState,inputMode):
+def getSubModeFromInput(ch,currentMode,inputMode):
     if inputMode == "arduino":
-        return getNextStateFromArduinoInput(ch,currentState)
+        return getSubModeFromArduinoInput(ch,currentMode)
     elif inputMode == "keyboard":
-        return getNextStateFromKeyboardInput(ch,currentState)
+        return getSubModeFromKeyboardInput(ch,currentMode)
+
+def getSubModeFromKeyboardInput(ch,currentMode):
+    if (ch == '5' or ch == 'g' or ch =='G'):
+        if currentMode ==  ROTATE_MODE:
+            currentMode = WALK_MODE
+        else :
+            currentMode = ROTATE_MODE
+    return currentMode
+def getSubModeFromArduinoInput(ch,currentMode):
+    ##Get the BUTTONS_ROTATE_SWITCH pressed == switch between rotation mode and walk mode
+    rotate=buttons(ch)[BUTTONS_ROTATE_SWITCH] == 1
+    freeWalking=buttons(ch)[BUTTONS_FREE_WALKING]== 1
+    if rotate :
+        if currentMode == ROTATE_MODE:
+            currentMode= WALK_MODE
+        else:
+            currentMode = ROTATE_MODE
+    elif freeWalking :
+        if currentMode == FREE_WALK_MODE:
+            currentMode = WALK_MODE
+        else:
+            currentMode =FREE_WALK_MODE
+    return currentMode
+        
+def getNextStateFromInput(ch,currentState,currentMode,inputMode):
+    if inputMode == "arduino":
+        return getNextStateFromArduinoInput(ch,currentState,currentMode)
+    elif inputMode == "keyboard":
+        return getNextStateFromKeyboardInput(ch,currentState,currentMode)
     else:
         print("Bad inputMode !\n")
         return None
-def getNextStateFromKeyboardInput(ch,currentState):
-   
+
+def getNextStateFromKeyboardInput(ch,currentState,currentMode):
     if (ch == '8' or ch == 't' or ch == 'T'):
         nextState="forwardwalking"
       
     elif (ch == '2' or ch == 'b' or ch =='B'):
         nextState="backwardwalking"
     elif (ch == '4' or ch == 'f' or ch == 'F'):
-        if "rotate" not in currentState :
+        if currentMode != ROTATE_MODE :
             nextState="leftwalking"
         else:
             nextState="rotateleft"
     elif (ch == '6' or ch == 'h' or ch =='H'):
-        if "rotate" not in currentState :
+        if currentMode != ROTATE_MODE :
             nextState="rightwalking"
         else :
             nextState="rotateright"
@@ -509,11 +505,7 @@ def getNextStateFromKeyboardInput(ch,currentState):
             
     elif (ch == '3' or ch == 'n' or ch =='N'):
         nextState = "backwardrightwalking"
-    elif (ch == '5' or ch == 'g' or ch =='G'):
-        if "rotate" not in currentState :
-            nextState="rotate"
-        else :
-            nextState="waiting"
+    
     else:
         nextState=None
     if(DEBUG_INPUT):
@@ -558,7 +550,7 @@ if __name__ == '__main__':
         scorpionMode(spider_robot)
         inputMode = "keyboard"
         mode="scorpion"
-
+        currentSubMode=WALK_MODE
         #Launch PollArduino thread 
         arduinoThread=PollArduino()
         arduinoThread.start()
@@ -608,14 +600,41 @@ if __name__ == '__main__':
                 mode="spider"
                 spiderMode(spider_robot)
             ## symbole to direction ( work with arduino and keyboard)
-            nextState=getNextStateFromInput(ch,currentState,inputMode)
+            oldcurrentMode=currentSubMode
+            currentSubMode = getSubModeFromArduinoInput(ch,currentSubMode,currentSubMode,inputMode)
+
+            nextState=getNextStateFromInput(ch,currentState,currentSubMode,inputMode)
             ## If symbole is found
             if(nextState != None):
+
                 if (mode == "scorpion") :
-                    scorpionMovement(currentState,nextState,spider_robot,inputMode,ch)
+
+                    if(currentSubMode == WALK_MODE):
+                        if(currentState != nextState ):
+                            scorpionWalk(False,nextState,spider_robot)    
+                        else:
+                            scorpionWalk(True,nextState,spider_robot)
+                    elif(currentState == FREE_WALK_MODE):
+                        if currentState != nextState:
+                            scorpionFreeWalk(False,nextState,spider_robot,ch)
+                        else:
+                            scorpionFreeWalk(True,nextState,spider_robot,ch)
+
                 elif (mode=="spider"):
-                    spiderMovement(currentState,nextState,spider_robot,inputMode,ch)
-                    if( "rotate" in nextState and "rotate" not in currentState):
+
+                    if(currentSubMode == WALK_MODE):
+                        if "walking" in currentState:
+                            spiderWalk(False,nextState,spider_robot)
+                        else:
+                            spiderWalk(True,nextState,spider_robot)
+
+                    elif(currentSubMode == FREE_WALK_MODE):
+                        if "walking" in currentState:
+                            spiderFreeWalk(False,nextState,spider_robot,ch)
+                        else:
+                            spiderFreeWalk(True,nextState,spider_robot,ch)
+
+                    elif(currentSubMode == ROTATE_MODE and oldCurrentSubMode != ROTATE_MODE):
                         stabilizeSpiderAfterWalking(spider_robot)
                     if(nextState == "rotateleft"):
                         spiderRotate(spider_robot, False)
