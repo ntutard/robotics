@@ -27,7 +27,14 @@ static void sendPosition(){
   Serial.print(Esplora.readButton(SWITCH_UP));
   Serial.print("#");
   Serial.print(Esplora.readButton(SWITCH_RIGHT));
+  Serial.print("#");
+  Serial.print(Esplora.readAccelerometer(X_AXIS));
+  Serial.print("#");
+  Serial.print(Esplora.readAccelerometer(Y_AXIS));
+  Serial.print("#");
+  Serial.print(Esplora.readAccelerometer(Z_AXIS));
   Serial.print("\n");
+
   
 }
 static void sendTemperature()

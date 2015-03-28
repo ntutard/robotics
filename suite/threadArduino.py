@@ -8,15 +8,20 @@ class PollArduino(Thread):
         self.ser=serial.Serial('/dev/ttyACM0',9600)
         self.shared=""
         self.notStopping=True
+        self.started=False
     def stop(self):
         self.notStopping=False
     def run(self):
+        self.started=True
         while(self.notStopping):
             self.shared=self.ser.readline()
             
     def getValue(self):
-        s=self.shared
-        return s
+        if self.started:
+            s=self.shared
+            return s
+        else:
+            print "Thread not started !\n"
 
 # p=PollArduino()
 # p.start()

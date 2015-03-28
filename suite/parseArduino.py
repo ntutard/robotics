@@ -1,7 +1,7 @@
 from subprocess import Popen
 import fileinput
 import subprocess
-
+MAX_JOYSTICK_ARDUINO = 512
 
 
 def buttons(tabValue):
@@ -11,6 +11,10 @@ def buttons(tabValue):
         assert(tabValue[i]==0 or  tabValue[i] == 1)
         tabRetour[i-2]=(tabValue[i]+1)%2
     return tabRetour
+
+def fact(tabValue):
+    assert(len(tabValue)>=2)
+    return [abs(tabValue[0])/512.,abs(tabValue[1])/512.]
 
 def direction(tabValue):
     directionX=0
@@ -45,9 +49,12 @@ def direction(tabValue):
         return "backwardLeft"
     
 def parseArduino(msg):
-    msgsplited=msg.split('#',6)
-    if(len(msgsplited)==7):
-        return [int(msgsplited[0]),int(msgsplited[1]),int(msgsplited[2]),int(msgsplited[3]),int(msgsplited[4]),int(msgsplited[5]),int(msgsplited[6])]
+    msgSplitedInt=[0 for i in range(10)]
+    msgsplited=msg.split('#',9)
+    if(len(msgsplited)==10):
+        for i in range(10):
+            msgSplitedInt[i]=int(msgsplited[i])
+        return msgSplitedInt
     return None
 
 
