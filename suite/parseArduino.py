@@ -27,7 +27,7 @@ def buttons(tabValue):
             
     return tabRetour
 
-def fact(tabValue):
+def coeff(tabValue):
     assert(len(tabValue)>=2)
     return [abs(tabValue[0])/512.,abs(tabValue[1])/512.]
 

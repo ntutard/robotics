@@ -227,36 +227,38 @@ def moveLegsRepere(sr, leg, moves, waitTime):
         time.sleep(waitTime)
         i += 1
     
-def spiderWalk(beginWalk, direction, sr):    
-    coefX = 40
-    coefY = 40
-    coefZ = 15
 
+def spiderFreeWalking(beginWalk,direction,sr,arduinoValue):
+    (coefX,coefY)=coeff(arduinoValue)
+    spiderWalk(beginWalk,direction,sr,coefX,coefY)
+
+def spiderWalk(beginWalk, direction, sr,coefX=40,coefY=40,coefZ=15):    
+    
     if (direction =="forwardwalking"):
-            coefX = coefX
-            coefY = 0
+        coefX = coefX
+        coefY = 0
     elif (direction == "backwardwalking"):
-            coefX = coefX * -1
-            coefY = 0
+        coefX = coefX * -1
+        coefY = 0
     elif direction == "leftwalking":
-            coefX = 0
-            coefY = coefY
+        coefX = 0
+        coefY = coefY
     elif direction == "rightwalking":
-            coefX = 0
-            coefY = coefY * -1
+        coefX = 0
+        coefY = coefY * -1
     elif direction == "forwardrightwalking":
-            coefX = coefX
-            coefY = coefY *-1
+        coefX = coefX
+        coefY = coefY *-1
     elif (direction == "forwardleftwalking"):
-            coefX = coefX
-            coefY = coefY
+        coefX = coefX
+        coefY = coefY
     elif (direction == "backwardrightwalking"):
-            coefX = coefX*-1
-            coefY = coefY *-1
+        coefX = coefX*-1
+        coefY = coefY *-1
     elif (direction == "backwardleftwalking"):
-            coefX = coefX*-1
-            coefY = coefY
-    else:
+        coefX = coefX*-1
+        coefY = coefY
+    elif (direction != "freewalking"):
         print("MOVEMENT NOT IMPLEMENTED : "+direction+"\n")
         return
     
@@ -326,8 +328,7 @@ def scorpionWalk(previousState, direction, sr):
         elif (direction == "backwardleftwalking"):
             coefX = coefX*-1
             coefY = coefY
-        elif (direction == "freewalking"):
-            
+
         else:
             print("MOVEMENT NOT IMPLEMENTED : "+direction+"\n")
             return 
@@ -408,18 +409,32 @@ def scorpionMode(sr):
         for l in legs:
             currentLegPositions[getKeyForLeg(spider_robot, l)] = [0] * 3
 
-def spiderMovement(currentState,nextState,spider_robot):
-    if ("walking" in currentState and "rotate" not in nextState):
-        spiderWalk(False,nextState,spider_robot)
+def spiderMovement(currentState,nextState,spider_robot,inputMode,arduinoValue=None):
+    if ("walking" in currentState and "rotate" not in nextState ):
+        if(nextState != "freewalking"):
+            spiderWalk(False,nextState,spider_robot)
+        elif (inputMode == "arduino"):
+            spiderFreeWalk(False,nextState,spider_robot,arduinoValue)
     elif ("walking" not in currentState and "rotate" not in nextState):
-        spiderWalk(True,nextState,spider_robot)
+        if (nextState != "freewalking"):
+            spiderWalk(True,nextState,spider_robot)
+        elif (inputMode == "arduino"):
+            spiderFreeWalk(True,nextState,spider_robot,arduinoValue)
         
     
-def scorpionMovement(currentState,nextState,spider_robot):
-    if(currentState != nextState and "rotate" not in nextState ):
-        scorpionWalk(False,nextState,spider_robot)
+def scorpionMovement(currentState,nextState,spider_robot,inputMode,arduinoValue=None):
+    if(currentState != nextState and "rotate" not in nextState):
+        if nextState != "freewalking"):
+            scorpionWalk(False,nextState,spider_robot)
+        elif inputMode == "arduino"
+            scorpionFreeWalk(False,nextState,spider_robot,arduinoValue)
+            
     elif (currentState == nextState and "rotate" not in nextState ):
-        scorpionWalk(True,nextState,spider_robot)
+        if (nextState != "freewalking"):
+            scorpionWalk(True,nextState,spider_robot)
+        elif inputMode == "arduino"
+            scorpionFreeWalk(True,nextState,spider_robot,arduinoValue)
+    
         
 def getNextStateFromArduinoInput(value,currentState):
     ##Get the joystick_button pressed == switch between rotation mode and walk mode
@@ -583,9 +598,9 @@ if __name__ == '__main__':
             ## If symbole is found
             if(nextState != None):
                 if (mode == "scorpion") :
-                    scorpionMovement(currentState,nextState,spider_robot)
+                    scorpionMovement(currentState,nextState,spider_robot,inputMode,ch)
                 elif (mode=="spider"):
-                    spiderMovement(currentState,nextState,spider_robot)
+                    spiderMovement(currentState,nextState,spider_robot,inputMode,ch)
                     if( "rotate" in nextState and "rotate" not in currentState):
                         stabilizeSpiderAfterWalking(spider_robot)
                     if(nextState == "rotateleft"):
