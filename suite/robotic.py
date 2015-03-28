@@ -176,6 +176,8 @@ def upAndDownLeg(leg):
     for m in leg :
         m.goal_position = 0
 
+def spiderAngleRotate(sr,angleRad):
+    return None ## TODO
 def spiderRotate(sr, clockSense) :
     waitTime = 0.25
     moveY = -50
@@ -419,11 +421,11 @@ def scorpionMovement(currentState,nextState,spider_robot):
         
 def getNextStateFromArduinoInput(value,currentState):
     ##Get the joystick_button pressed == switch between rotation mode and walk mode
-    rotate=buttons(value)[0] == 1
+    rotate=buttons(value)[BUTTONS_ROTATE_SWITCH] == 1
     ## In case of joystick_button pressed
     if rotate :
         if "rotate" not in currentState:
-            nextState = "rotate"
+            nextState = "rotateangle"
         else:
             nextState = "waiting"
         return nextState
@@ -482,7 +484,7 @@ def getNextStateFromKeyboardInput(ch,currentState):
     elif (ch == '3' or ch == 'n' or ch =='N'):
         nextState = "backwardrightwalking"
     elif (ch == '5' or ch == 'g' or ch =='G'):
-        if currentState != "rotate":
+        if "rotate" not in currentState :
             nextState="rotate"
         else :
             nextState="waiting"
@@ -565,7 +567,7 @@ if __name__ == '__main__':
             if (ch == '!'):
                 inputMode = "arduino"
                 print("Arduino input mode")
-            elif (buttons(ch)[1] == 1):
+            elif (buttons(ch)[BUTTONS_SWITCH_MODE] == 1):
                 inputMode = "keyboard"
                 print("keyboard input mode")
                 ch = None
@@ -588,6 +590,8 @@ if __name__ == '__main__':
                         spiderRotate(spider_robot, False)
                     elif (nextState == "rotateright"):
                         spiderRotate(spider_robot, True)
+                    elif (nextState == "rotateangle"):
+                        spiderAngleRotate(spider_robot,angleRad(ch))
                 ## if nextState != None , update current state .
                 currentState = nextState
 

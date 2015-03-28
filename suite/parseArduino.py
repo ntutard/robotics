@@ -1,8 +1,13 @@
 from subprocess import Popen
 import fileinput
+import math
 import subprocess
 MAX_JOYSTICK_ARDUINO = 512
 UNLOCK_BUTTONS=[True,True,True,True,True]
+BUTTONS_ROTATE_SWITCH=0
+BUTTONS_SWITCH_MODE=1
+
+
 def buttons(tabValue):
     tabRetour=[0,0,0,0,0]
     assert(len(tabValue)>=7)
@@ -25,6 +30,11 @@ def buttons(tabValue):
 def fact(tabValue):
     assert(len(tabValue)>=2)
     return [abs(tabValue[0])/512.,abs(tabValue[1])/512.]
+
+def angleRad(tabValue):
+    assert(len(tabValue)>=2)
+    return math.atan2(-tabValue[1],-tabValue[0])
+
 
 def direction(tabValue):
     directionX=0
