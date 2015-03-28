@@ -30,23 +30,25 @@ def direction(tabValue):
         directionY=-1
     tabDirection=[-directionY,-directionX]
     if(tabDirection == [0,0]):
-        return "idle"
+        return "waiting"
     elif (tabDirection == [0,1]):
-        return "right"
+        return "rightwalking"
     elif (tabDirection == [0,-1]):
-        return "left"
+        return "leftwalking"
     elif (tabDirection == [1,0]):
-        return "forward"
+        return "forwardwalking"
     elif (tabDirection == [1,1]):
-        return "forwardRight"
+        return "forwardrightwalking"
     elif (tabDirection == [1,-1]):
-        return "forwardLeft"
+        return "forwardleftwalking"
     elif (tabDirection == [-1,0]):
-        return "backward"
+        return "backwardwalking"
     elif (tabDirection == [-1,1]):
-        return "backwardRight"
+        return "backwardrightwalking"
     elif (tabDirection == [-1,-1]):
-        return "backwardLeft"
+        return "backwardleftwalking"
+    else :
+        return None
     
 def parseArduino(msg):
     msgSplitedInt=[0 for i in range(10)]

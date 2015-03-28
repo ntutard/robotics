@@ -15,7 +15,8 @@ from math import cos, sin, acos, asin
 from indirect import *
 import math
 
-
+## print input results
+DEBUG_INPUT = True
 def leg_dk(T1,T2,T3,L1 = 51,L2 = 63.7, L3 =93, a=None, b=None ):
     if a == None:
         a = asin(22.5/L2)
@@ -416,8 +417,33 @@ def scorpionMovement(currentState,nextState,spider_robot):
     elif (currentState == nextState and "rotate" not in nextState ):
         scorpionWalk(True,nextState,spider_robot)
         
-def getNextStateFromArduinoInput(ch,currentState):
-    return None
+def getNextStateFromArduinoInput(value,currentState):
+    ##Get the switch_down pressed == switch between rotation mode and walk mode
+    rotate=buttons(value)[0] == 0
+    ## In case of switch_down pressed
+    if rotate :
+        if "rotate" not in currentState:
+            nextState = "rotate"
+        else:
+            nextState = "waiting"
+        return nextState
+
+    ## elsewise we read analog joystick
+    ch = direction(value)
+    elif ch == "leftwalking":
+        if "rotate" in currentState:
+            nextState="rotateleft"
+    elif ch == "rightwalking":
+        if "rotate" in currentState:
+            nextState = "rotateright"
+    elif ch == None or ch == "waiting":
+        nextState = None
+    else:
+        nextState = ch
+    if(DEBUG_INPUT):
+        print("DEBUG INPUT FROM ARDUINO : ch = "+ch +"\ncurrentState = "+currentState+"\nnextState = "+nextState+"\n")
+    return nextState
+        
     ##TODO
 
 def getNextStateFromInput(ch,currentState,inputMode):
@@ -439,12 +465,12 @@ def getNextStateFromKeyboardInput(ch,currentState):
         if "rotate" not in currentState :
             nextState="leftwalking"
         else:
-            nextState="rotationleft"
+            nextState="rotateleft"
     elif (ch == '6' or ch == 'h' or ch =='H'):
         if "rotate" not in currentState :
-            nextState="right"
+            nextState="rightwalking"
         else :
-            nextState="rotationright"
+            nextState="rotateright"
     elif (ch == '7' or ch == 'r' or ch =='R'):
         nextState="forwardleftwalking"
     elif (ch == '9' or ch == 'y' or ch =='Y'):
@@ -462,7 +488,8 @@ def getNextStateFromKeyboardInput(ch,currentState):
             nextState="waiting"
     else:
         nextState=None
-   
+    if(DEBUG_INPUT):
+        print("DEBUG INPUT FROM KEYBOARD : ch = "+ch +"\ncurrentState = "+currentState+"\nnextState = "+nextState+"\n")
     return nextState
     
 def getKeyForLeg(sr, l):
@@ -528,9 +555,9 @@ if __name__ == '__main__':
                         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
             elif (inputMode == "arduino"): 
                 ## TODO = keep reading keyboard here in order to stop arduino mode if not responding 
-                ##Get the last value read by PollArduino ( no buffering ) , parse the packet and 
-                ##get the direction. ch == None if parse or direction or getValue failed .
-                ch=direction(parseArduino(arduinoThread.getValue()))
+                ##Get the last value read by PollArduino ( no buffering ) and parse it.
+                ##ch == None if getValue or parseArduino failed.
+                ch=parseArduino(arduinoThread.getValue())
                 
             
             
@@ -549,9 +576,9 @@ if __name__ == '__main__':
             ## If symbole is found
             if(nextState != None):
                 if (mode == "scorpion") :
-                    scorpion(currentState,nextState,spider_robot)
+                    scorpionMovement(currentState,nextState,spider_robot)
                 elif (mode=="spider"):
-                    spider(currentState,nextState,spider_robot)
+                    spiderMovement(currentState,nextState,spider_robot)
                     if( "rotate" in nextState and "rotate" not in currentState):
                         stabilizeSpiderAfterWalking(spider_robot)
                     if(nextState == "rotateleft"):
