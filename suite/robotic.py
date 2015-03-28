@@ -413,15 +413,7 @@ def scorpionMode(sr):
         for l in legs:
             currentLegPositions[getKeyForLeg(spider_robot, l)] = [0] * 3
 
-def spiderMovement(currentState,nextState,spider_robot):
 
-                
-    
-def scorpionMovement(currentState,nextState,spider_robot):
-  
-       # elif inputMode == "arduino"
-        #    scorpionFreeWalk(True,nextState,spider_robot,arduinoValue)
-    
         
 def getNextStateFromArduinoInput(value,currentState,currentMode):
     
