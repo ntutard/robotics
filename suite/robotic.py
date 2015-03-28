@@ -418,9 +418,9 @@ def scorpionMovement(currentState,nextState,spider_robot):
         scorpionWalk(True,nextState,spider_robot)
         
 def getNextStateFromArduinoInput(value,currentState):
-    ##Get the switch_down pressed == switch between rotation mode and walk mode
-    rotate=buttons(value)[0] == 0
-    ## In case of switch_down pressed
+    ##Get the joystick_button pressed == switch between rotation mode and walk mode
+    rotate=buttons(value)[0] == 1
+    ## In case of joystick_button pressed
     if rotate :
         if "rotate" not in currentState:
             nextState = "rotate"
@@ -565,7 +565,10 @@ if __name__ == '__main__':
             if (ch == '!'):
                 inputMode = "arduino"
                 print("Arduino input mode")
-            
+            elif (buttons(ch)[1] == 1):
+                inputMode = "keyboard"
+                print("keyboard input mode")
+                ch = None
             ## spider_robot mode change
             elif (ch == '0' or ch == 'c' or ch =='c'):
                 print("Changing to spider mode")
@@ -592,6 +595,7 @@ if __name__ == '__main__':
                         
 
         print("Deconnexion")
+        arduinoThread.stop()
         setInit(spider_robot);
         
         spider_robot.close()

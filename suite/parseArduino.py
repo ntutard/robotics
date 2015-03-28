@@ -2,14 +2,24 @@ from subprocess import Popen
 import fileinput
 import subprocess
 MAX_JOYSTICK_ARDUINO = 512
-
-
+UNLOCK_BUTTONS=[True,True,True,True,True]
 def buttons(tabValue):
     tabRetour=[0,0,0,0,0]
     assert(len(tabValue)>=7)
     for i in range(2,7):
         assert(tabValue[i]==0 or  tabValue[i] == 1)
-        tabRetour[i-2]=(tabValue[i]+1)%2
+        ## Prevent buttons to be pressed multiple time by waiting each one to be released before watching them again
+        ## 0011111001 -> 00100000001 
+        if(UNLOCK_BUTTONS [i-2]) :
+            tabRetour[i-2]=(tabValue[i]+1)%2
+        else :
+            tabRetour[i-2]=0
+        if((tabValue[i]+1)%2 == 0):
+            UNLOCK_BUTTONS[i-2]= True
+        else:
+            UNLOCK_BUTTONS[i-2]= False
+    
+            
     return tabRetour
 
 def fact(tabValue):
