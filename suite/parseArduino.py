@@ -2,12 +2,21 @@ from subprocess import Popen
 import fileinput
 import math
 import subprocess
+
+
 MAX_JOYSTICK_ARDUINO = 512
 UNLOCK_BUTTONS=[True,True,True,True,True]
+BUTTONS_NAMES=["Joystick button","switch_down button","switch_left button","switch_up button","switch_right button"]
+
+## [0,6[ , one button <=> one action 
 BUTTONS_ROTATE_SWITCH=0
 BUTTONS_SWITCH_MODE=1
+BUTTONS_FREE_WALKING=2
 
 
+## Get the tab with 5 buttons values , 1 == pressed . 
+## See buttons_names for order .
+## Buttons cannot be hold . Only count for 1 time pressed for simplicity (UNLOCK_BUTTONS) .
 def buttons(tabValue):
     tabRetour=[0,0,0,0,0]
     assert(len(tabValue)>=7)

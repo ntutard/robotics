@@ -227,7 +227,8 @@ def moveLegsRepere(sr, leg, moves, waitTime):
         time.sleep(waitTime)
         i += 1
     
-
+def scorpionFreeWalking(beginWalk,direction,sr,arduinoValue):
+    return None ## TODO
 def spiderFreeWalking(beginWalk,direction,sr,arduinoValue):
     (coefX,coefY)=coeff(arduinoValue)
     spiderWalk(beginWalk,direction,sr,coefX,coefY)
@@ -437,17 +438,25 @@ def scorpionMovement(currentState,nextState,spider_robot,inputMode,arduinoValue=
     
         
 def getNextStateFromArduinoInput(value,currentState):
-    ##Get the joystick_button pressed == switch between rotation mode and walk mode
+    ##Get the BUTTONS_ROTATE_SWITCH pressed == switch between rotation mode and walk mode
     rotate=buttons(value)[BUTTONS_ROTATE_SWITCH] == 1
-    ## In case of joystick_button pressed
+    freeWalking=buttons(value)[BUTTONS_FREE_WALKING]== 1
+    ## In case of BUTTONS_ROTATE_SWITCH pressed
     if rotate :
         if "rotate" not in currentState:
             nextState = "rotateangle"
         else:
             nextState = "waiting"
         return nextState
-
-    ## elsewise we read analog joystick
+    ## In case of BUTTONS_FREE_WALKING pressed 
+    elif freeWalking :
+        if "freewalking" not in currentState:
+            nextState="freewalking"
+        else:
+            nextState = "waiting"
+        return nextState
+        
+    ## otherwise we read direction from analog joystick
     ch = direction(value)
     elif ch == "leftwalking":
         if "rotate" in currentState:
@@ -463,7 +472,7 @@ def getNextStateFromArduinoInput(value,currentState):
         print("DEBUG INPUT FROM ARDUINO : ch = "+ch +"\ncurrentState = "+currentState+"\nnextState = "+nextState+"\n")
     return nextState
         
-    ##TODO
+
 
 def getNextStateFromInput(ch,currentState,inputMode):
     if inputMode == "arduino":
@@ -577,6 +586,11 @@ if __name__ == '__main__':
                 ##Get the last value read by PollArduino ( no buffering ) and parse it.
                 ##ch == None if getValue or parseArduino failed.
                 ch=parseArduino(arduinoThread.getValue())
+                ## If arduino doesn't work properly change mode to keyboard
+                ## and go back to while line 
+                if ch == None:
+                    inputMode ="keyboard"
+                    continue
                 
             
             
