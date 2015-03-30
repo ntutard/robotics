@@ -51,9 +51,19 @@ def buttons(tabValue):
         BUTTONS_SAVE[i]=tabRetour[i]
     return tabRetour
 
+
 def coeff(tabValue):
     assert(len(tabValue)>=2)
-    return [abs(tabValue[0])/512.,abs(tabValue[1])/512.]
+    if(tabValue[0]<0):
+        signeX=-1
+    else:
+        signeX=1
+    if(-tabValue[1]<0):
+        signeY=-1
+    else:
+        signeY=1
+    
+    return [signeX*abs(tabValue[0])/512.,signeY*abs(tabValue[1])/512.]
 
 def angleRad(tabValue):
     assert(len(tabValue)>=2)

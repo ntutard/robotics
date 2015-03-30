@@ -14,7 +14,7 @@ from pypot.robot import from_json
 from math import cos, sin, acos, asin
 from indirect import *
 import math
-DEFAULT_GOAL_SPEED = 40
+DEFAULT_GOAL_SPEED = 100
 ## print input results
 DEBUG_INPUT = True
 WALK_MODE="walkmode"
@@ -234,7 +234,11 @@ def scorpionFreeWalking(beginWalk,direction,sr,arduinoValue):
     return None ## TODO
 def spiderFreeWalk(beginWalk,direction,sr,arduinoValue):
     (coefX,coefY)=coeff(arduinoValue)
-    spiderWalk(beginWalk,direction,sr,coefX,coefY)
+    defaultX=40
+    defaultY=40
+    if(DEBUG_INPUT):
+        print coefX,coefY
+    spiderWalk(beginWalk,"freewalking",sr,coefY*defaultX,coefX*defaultY)
 
 def spiderWalk(beginWalk, direction, sr,coefX=40,coefY=40,coefZ=15):    
     
@@ -377,7 +381,7 @@ def scorpionWalk(previousState, direction, sr):
 def spiderMode(sr):
         setInit(sr)
 
-        time.sleep(1)
+        time.sleep(2)
         
         move(sr, 0, 0, 35)
 
@@ -551,9 +555,9 @@ if __name__ == '__main__':
                     
         #print(currentLegPositions)
         setInit(spider_robot)
-        scorpionMode(spider_robot)
+        spiderMode(spider_robot)
         inputMode = "keyboard"
-        mode="scorpion"
+        mode="spider"
         currentSubMode=WALK_MODE
         #Launch PollArduino thread 
         arduinoThread=PollArduino()
@@ -609,6 +613,7 @@ if __name__ == '__main__':
                     scorpionMode(spider_robot)
                 else:
                     mode="spider"
+                    setInit(spider_robot)
                     spiderMode(spider_robot)
          
             ## spider_robot mode change
