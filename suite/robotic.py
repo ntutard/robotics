@@ -14,7 +14,7 @@ from pypot.robot import from_json
 from math import cos, sin, acos, asin
 from indirect import *
 import math
-
+DEFAULT_GOAL_SPEED = 40
 ## print input results
 DEBUG_INPUT = True
 WALK_MODE="walkmode"
@@ -92,7 +92,7 @@ def changeId(ids):
             pos = dxl_io.get_present_position(ids)
             for x in range(len(pos)):
                 if (abs(pos[x]) > 20):
-                    print("Enter id for this motor :")
+                    print("Enter id for this motor (previous ="+str(ids[x])+") :")
                     tmp = int( input() )
                     ids = interchangeId(ids, ids[x], tmp )
                     idNotGiven = False
@@ -205,15 +205,15 @@ def spiderRotate(sr, clockSense) :
 def setInit(spider_robot) :
     for m in spider_robot.thirdMotors :
             m.compliant = False
-            m.goal_speed = 150
+            m.goal_speed = DEFAULT_GOAL_SPEED
             m.goal_position = 0
     for m in spider_robot.secondMotors :
             m.compliant = False
-            m.goal_speed = 150
+            m.goal_speed = DEFAULT_GOAL_SPEED
             m.goal_position = 0
     for m in spider_robot.firstMotors :
             m.compliant = False
-            m.goal_speed = 150
+            m.goal_speed = DEFAULT_GOAL_SPEED
             m.goal_position = 0
 
 
@@ -232,7 +232,7 @@ def moveLegsRepere(sr, leg, moves, waitTime):
     
 def scorpionFreeWalking(beginWalk,direction,sr,arduinoValue):
     return None ## TODO
-def spiderFreeWalking(beginWalk,direction,sr,arduinoValue):
+def spiderFreeWalk(beginWalk,direction,sr,arduinoValue):
     (coefX,coefY)=coeff(arduinoValue)
     spiderWalk(beginWalk,direction,sr,coefX,coefY)
 
@@ -418,17 +418,22 @@ def scorpionMode(sr):
 def getNextStateFromArduinoInput(value,currentState,currentMode):
     
     ch = direction(value)
+
     if ch == "leftwalking":
         if currentMode == ROTATE_MODE:
             nextState="rotateleft"
+        else:
+            nextState = ch
     elif ch == "rightwalking":
         if currentMode== ROTATE_MODE:
             nextState = "rotateright"
-    elif ch == "waiting":## XXX Arduino can't wait because it always send data.
-        nextState = currentState
+        else:
+            nextState = ch
+    elif ch == "waiting": # XXX
+        nextState = None
     else:
         nextState = ch
-    if(DEBUG_INPUT):
+    if(DEBUG_INPUT and nextState != None):
         print("DEBUG INPUT FROM ARDUINO : ch = "+ch +"\ncurrentState = "+currentState+"\nnextState = "+nextState+"\n")
     return nextState
         
@@ -448,8 +453,12 @@ def getSubModeFromKeyboardInput(ch,currentMode):
     return currentMode
 def getSubModeFromArduinoInput(ch,currentMode):
     ##Get the BUTTONS_ROTATE_SWITCH pressed == switch between rotation mode and walk mode
-    rotate=buttons(ch)[BUTTONS_ROTATE_SWITCH] == 1
-    freeWalking=buttons(ch)[BUTTONS_FREE_WALKING]== 1
+    
+    rotate=buttonsSave()[BUTTONS_ROTATE_SWITCH] == 1
+    freeWalking=buttonsSave()[BUTTONS_FREE_WALKING]== 1
+   
+    if rotate or freeWalking:
+        time.sleep(3)
     if rotate :
         if currentMode == ROTATE_MODE:
             currentMode= WALK_MODE
@@ -460,6 +469,8 @@ def getSubModeFromArduinoInput(ch,currentMode):
             currentMode = WALK_MODE
         else:
             currentMode =FREE_WALK_MODE
+    if DEBUG_INPUT:
+        print "CURRENT_MODE : " +str(currentMode)
     return currentMode
         
 def getNextStateFromInput(ch,currentState,currentMode,inputMode):
@@ -500,7 +511,7 @@ def getNextStateFromKeyboardInput(ch,currentState,currentMode):
     
     else:
         nextState=None
-    if(DEBUG_INPUT):
+    if(DEBUG_INPUT and nextState != None):
         print("DEBUG INPUT FROM KEYBOARD : ch = "+ch +"\ncurrentState = "+currentState+"\nnextState = "+nextState+"\n")
     return nextState
     
@@ -528,17 +539,18 @@ if __name__ == '__main__':
         nextState=None
         currentState="waiting"
 
-        #with pypot.dynamixel.DxlIO('/dev/ttyUSB0', baudrate=1000000) as dxl_io:
-        #        found_ids = dxl_io.scan()  # this may take several seconds
-        #        changeId(found_ids)
-
-        print ("Initialisation du robot")
-        print(currentLegPositions)
+        # with pypot.dynamixel.DxlIO('/dev/ttyUSB0', baudrate=1000000) as dxl_io:
+        #         found_ids = dxl_io.scan()  # this may take several seconds
+        #         print found_ids
+        #         changeId(found_ids)
+                
+        #print ("Initialisation du robot")
+        #print(currentLegPositions)
         
         spider_robot=from_json('spider_robot.json')
                     
-        print(currentLegPositions)
-        
+        #print(currentLegPositions)
+        setInit(spider_robot)
         scorpionMode(spider_robot)
         inputMode = "keyboard"
         mode="scorpion"
@@ -570,31 +582,46 @@ if __name__ == '__main__':
                 ##Get the last value read by PollArduino ( no buffering ) and parse it.
                 ##ch == None if getValue or parseArduino failed.
                 ch=parseArduino(arduinoThread.getValue())
+                
                 ## If arduino doesn't work properly change mode to keyboard
                 ## and go back to while line 
                 if ch == None:
                     inputMode ="keyboard"
                     continue
-                
+                ##Save buttons
+                buttons(ch)
             
             
             ## Input mode change 
             if (ch == '!'):
                 inputMode = "arduino"
+                time.sleep(1)
                 print("Arduino input mode")
-            elif (buttons(ch)[BUTTONS_SWITCH_MODE] == 1):
+                continue
+            if (inputMode=="arduino" and buttonsSave()[BUTTONS_SWITCH_MODE] == 1):
                 inputMode = "keyboard"
                 print("keyboard input mode")
                 ch = None
+            if (inputMode == "arduino" and buttonsSave()[BUTTONS_SWITCH_SPIDER_MODE] == 1):
+                print("Changing to spider mode")
+                if (mode == "spider"):
+                    mode="scorpion"
+                    scorpionMode(spider_robot)
+                else:
+                    mode="spider"
+                    spiderMode(spider_robot)
+         
             ## spider_robot mode change
-            elif (ch == '0' or ch == 'c' or ch =='c'):
+            if (ch == '0' or ch == 'c' or ch =='c'):
                 print("Changing to spider mode")
                 mode="spider"
                 spiderMode(spider_robot)
+
+          
             ## symbole to direction ( work with arduino and keyboard)
             oldcurrentMode=currentSubMode
-            currentSubMode = getSubModeFromInput(ch,currentSubMode,currentSubMode,inputMode)
-
+            currentSubMode = getSubModeFromInput(ch,currentSubMode,inputMode)
+            
             nextState=getNextStateFromInput(ch,currentState,currentSubMode,inputMode)
             ## If symbole is found
             if(nextState != None):
@@ -642,7 +669,7 @@ if __name__ == '__main__':
 
         print("Deconnexion")
         arduinoThread.stop()
-        setInit(spider_robot);
+        setInit(spider_robot)
         
         spider_robot.close()
 
