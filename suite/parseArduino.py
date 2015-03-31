@@ -3,7 +3,7 @@ import fileinput
 import math
 import subprocess
 
-
+DEBUG_INPUT = True
 MAX_JOYSTICK_ARDUINO = 512
 UNLOCK_BUTTONS=[True,True,True,True,True]
 BUTTONS_NAMES=["Joystick button","switch_down button","switch_left button","switch_up button","switch_right button"]
@@ -18,14 +18,21 @@ BUTTON_SWITCH_RIGHT=4
 BUTTONS_ROTATE_SWITCH=BUTTON_JOYSTICK
 BUTTONS_SWITCH_MODE=BUTTON_SWITCH_DOWN
 BUTTONS_FREE_WALKING=BUTTON_SWITCH_LEFT
+BUTTONS_SWITCH_SPIDER_MODE=BUTTON_SWITCH_RIGHT
+BUTTONS_SAVE=[0,0,0,0,0]
 
 
-
+def buttonsSave():
+    if(DEBUG_INPUT):
+        print BUTTONS_SAVE
+    return BUTTONS_SAVE
 ## Get the tab with 5 buttons values , 1 == pressed . 
 ## See buttons_names for order .
 ## Buttons cannot be hold . Only count for 1 time pressed for simplicity (UNLOCK_BUTTONS) .
 def buttons(tabValue):
     tabRetour=[0,0,0,0,0]
+    if(DEBUG_INPUT):
+        print tabValue
     assert(len(tabValue)>=7)
     for i in range(2,7):
         assert(tabValue[i]==0 or  tabValue[i] == 1)
@@ -40,12 +47,23 @@ def buttons(tabValue):
         else:
             UNLOCK_BUTTONS[i-2]= False
     
-            
+    for i in range(5):
+        BUTTONS_SAVE[i]=tabRetour[i]
     return tabRetour
+
 
 def coeff(tabValue):
     assert(len(tabValue)>=2)
-    return [abs(tabValue[0])/512.,abs(tabValue[1])/512.]
+    if(tabValue[0]<0):
+        signeX=-1
+    else:
+        signeX=1
+    if(-tabValue[1]<0):
+        signeY=-1
+    else:
+        signeY=1
+    
+    return [signeX*abs(tabValue[0])/512.,signeY*abs(tabValue[1])/512.]
 
 def angleRad(tabValue):
     assert(len(tabValue)>=2)
