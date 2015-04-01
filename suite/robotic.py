@@ -19,6 +19,8 @@ DEFAULT_GOAL_SPEED = 100
 DEBUG_INPUT = True
 WALK_MODE="walkmode"
 ROTATE_MODE="rotatemode"
+ANGLE_ROTATE_MODE="anglerotatemode"
+MOVE_TO_MM="flrkgtrk"
 FREE_WALK_MODE="freewalkmode"
 def leg_dk(T1,T2,T3,L1 = 51,L2 = 63.7, L3 =93, a=None, b=None ):
     if a == None:
@@ -179,8 +181,73 @@ def upAndDownLeg(leg):
     for m in leg :
         m.goal_position = 0
 
-def spiderAngleRotate(sr,angleRad):
-    return None ## TODO
+def spiderGoToMM(sr,mmX,mmY):
+    maxX=40
+    maxY=40
+    beginWalk=True
+    while(abs(mmX)!=0 or abs(mmY) !=0 ):
+        valueX=mmX
+        valueY=mmY
+        if(abs(mmX)>=maxX):
+            if(mmX<0):
+                mmX+=maxX
+                valueX-=maxX
+            else:
+                mmX-=maxX
+                valueX=maxX
+        else:
+            mmX=0
+        if(abs(mmY)>maxY):
+            if(mmY<0):
+                mmY+=maxY
+                valueY-=maxY
+            else:
+                mmY-=maxY
+                valueY=maxY
+        else:
+            mmY=0
+        print valueX,valueY
+
+        spiderWalk(beginWalk,"freewalking",sr,valueX,valueY)
+        beginWalk=False
+        
+
+def spiderAngleRotate(sr,angleRad, clockSense):
+    waitTime = 0.28
+
+    while (angleRad != 0):
+        tmp = 0
+        if (angleRad > math.pi/12):
+            tmp = math.pi/12
+            angleRad -= math.pi/12
+        elif (-angleRad > math.pi/12):
+            tmp = -math.pi/12
+            angleRad += math.pi/12
+        else:
+            tmp = angleRad
+            angleRad = 0
+
+        print (tmp * 180 / math.pi)
+        moveX = 0
+        moveY = 50./20. * (tmp * 180 / math.pi)
+        moveZ = 20
+
+        print str(moveX) + " " + str(moveY)
+
+        if (clockSense):
+            moveY = -moveY
+            
+        moveThreeLegs(sr.leg1, sr.leg31, sr.leg41, -moveX, -moveY, moveZ)
+        moveThreeLegs(sr.leg2, sr.leg32, sr.leg42, moveX, moveY, 0)
+        time.sleep(waitTime)
+        moveThreeLegs(sr.leg1, sr.leg31, sr.leg41, 0, 0, -moveZ)
+        time.sleep(0.1)
+        moveThreeLegs(sr.leg2, sr.leg32, sr.leg42, -moveX, -moveY, moveZ)
+        time.sleep(waitTime)
+        moveThreeLegs(sr.leg1, sr.leg31, sr.leg41, moveX, moveY, 0)
+        moveThreeLegs(sr.leg2, sr.leg32, sr.leg42, 0, 0, -moveZ)
+        time.sleep(waitTime)
+    
 def spiderRotate(sr, clockSense) :
     waitTime = 0.25
     moveY = -50
@@ -232,6 +299,7 @@ def moveLegsRepere(sr, leg, moves, waitTime):
     
 def scorpionFreeWalking(beginWalk,direction,sr,arduinoValue):
     return None ## TODO
+
 def spiderFreeWalk(beginWalk,direction,sr,arduinoValue):
     (coefX,coefY)=coeff(arduinoValue)
     defaultX=40
@@ -454,6 +522,19 @@ def getSubModeFromKeyboardInput(ch,currentMode):
             currentMode = WALK_MODE
         else :
             currentMode = ROTATE_MODE
+            print "ROTATE MODE"
+    elif(ch == 'o' or ch == 'O'):
+        if currentMode == ANGLE_ROTATE_MODE:
+            currentMode=WALK_MODE
+        else:
+            print "ANGLE ROTATE MODE"
+            currentMode=ANGLE_ROTATE_MODE
+    elif(ch == 'p' or ch =='P'):
+        if currentMode == MOVE_TO_MM:
+            currentMode = WALK_MODE
+        else:
+            print "TO MM MODE"
+            currentMode=MOVE_TO_MM
     return currentMode
 def getSubModeFromArduinoInput(ch,currentMode):
     ##Get the BUTTONS_ROTATE_SWITCH pressed == switch between rotation mode and walk mode
@@ -512,7 +593,10 @@ def getNextStateFromKeyboardInput(ch,currentState,currentMode):
             
     elif (ch == '3' or ch == 'n' or ch =='N'):
         nextState = "backwardrightwalking"
-    
+    elif currentMode == ANGLE_ROTATE_MODE:
+        nextState = "anglerotate"
+    elif currentMode == MOVE_TO_MM :
+        nextState= "tomm"
     else:
         nextState=None
     if(DEBUG_INPUT and nextState != None):
@@ -543,10 +627,10 @@ if __name__ == '__main__':
         nextState=None
         currentState="waiting"
 
-        # with pypot.dynamixel.DxlIO('/dev/ttyUSB0', baudrate=1000000) as dxl_io:
-        #         found_ids = dxl_io.scan()  # this may take several seconds
-        #         print found_ids
-        #         changeId(found_ids)
+##        with pypot.dynamixel.DxlIO('/dev/ttyUSB0', baudrate=1000000) as dxl_io:
+##                found_ids = dxl_io.scan()  # this may take several seconds
+##                print found_ids
+##                changeId(found_ids)
                 
         #print ("Initialisation du robot")
         #print(currentLegPositions)
@@ -602,6 +686,8 @@ if __name__ == '__main__':
                 time.sleep(1)
                 print("Arduino input mode")
                 continue
+            elif (ch == 'q'): 
+                break
             if (inputMode=="arduino" and buttonsSave()[BUTTONS_SWITCH_MODE] == 1):
                 inputMode = "keyboard"
                 print("keyboard input mode")
@@ -621,7 +707,6 @@ if __name__ == '__main__':
                 print("Changing to spider mode")
                 mode="spider"
                 spiderMode(spider_robot)
-
           
             ## symbole to direction ( work with arduino and keyboard)
             oldcurrentMode=currentSubMode
@@ -657,15 +742,23 @@ if __name__ == '__main__':
                             spiderFreeWalk(False,nextState,spider_robot,ch)
                         else:
                             spiderFreeWalk(True,nextState,spider_robot,ch)
-
-                    elif(currentSubMode == ROTATE_MODE and oldCurrentSubMode != ROTATE_MODE):
+                    elif(currentSubMode == MOVE_TO_MM):
+                        print "Entrer la valeur souhaitee en MM X"
+                        mmX=int(input())
+                        print "Entrer la valeur souhaitee en MM Y"
+                        mmY=int(input())
+                        spiderGoToMM(spider_robot,mmX,mmY)
+                        
+                    elif(currentSubMode == ROTATE_MODE and oldcurrentMode != ROTATE_MODE):
                         stabilizeSpiderAfterWalking(spider_robot)
                     if(nextState == "rotateleft"):
                         spiderRotate(spider_robot, False)
                     elif (nextState == "rotateright"):
                         spiderRotate(spider_robot, True)
-                    elif (nextState == "rotateangle"):
-                        spiderAngleRotate(spider_robot,angleRad(ch))
+                    elif(currentSubMode == ANGLE_ROTATE_MODE and inputMode == "keyboard" ):
+                        print "Entrer la valeur souhaitee"
+                        tmpAngle=float(input())
+                        spiderAngleRotate(spider_robot,tmpAngle*math.pi/180.,False)
                 ## if nextState != None , update current state .
                 currentState = nextState
 
