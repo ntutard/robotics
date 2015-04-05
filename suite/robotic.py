@@ -22,6 +22,7 @@ ROTATE_MODE="rotatemode"
 ANGLE_ROTATE_MODE="anglerotatemode"
 MOVE_TO_MM="flrkgtrk"
 FREE_WALK_MODE="freewalkmode"
+CENTER_MODE="centermovemode"
 def leg_dk(T1,T2,T3,L1 = 51,L2 = 63.7, L3 =93, a=None, b=None ):
     if a == None:
         a = asin(22.5/L2)
@@ -182,9 +183,10 @@ def upAndDownLeg(leg):
         m.goal_position = 0
 
 def spiderGoToMM(sr,mmX,mmY):
-    maxX=40
-    maxY=40
+    maxX=30
+    maxY=30
     beginWalk=True
+        
     while(abs(mmX)!=0 or abs(mmY) !=0 ):
         valueX=mmX
         valueY=mmY
@@ -306,7 +308,7 @@ def spiderFreeWalk(beginWalk,direction,sr,arduinoValue):
     defaultY=40
     if(DEBUG_INPUT):
         print coefX,coefY
-    spiderWalk(beginWalk,"freewalking",sr,coefY*defaultX,coefX*defaultY)
+    spiderWalk(True,"freewalking",sr,coefY*defaultX,coefX*defaultY)
 
 def spiderWalk(beginWalk, direction, sr,coefX=40,coefY=40,coefZ=15):    
     
@@ -535,6 +537,12 @@ def getSubModeFromKeyboardInput(ch,currentMode):
         else:
             print "TO MM MODE"
             currentMode=MOVE_TO_MM
+    elif(ch == 'm' or ch == 'M'):
+        if currentMode ==CENTER_MODE:
+            currentMode=WALK_MODE
+        else:
+            print "CENTER_MODE"
+            currentMode=CENTER_MODE
     return currentMode
 def getSubModeFromArduinoInput(ch,currentMode):
     ##Get the BUTTONS_ROTATE_SWITCH pressed == switch between rotation mode and walk mode
@@ -597,6 +605,8 @@ def getNextStateFromKeyboardInput(ch,currentState,currentMode):
         nextState = "anglerotate"
     elif currentMode == MOVE_TO_MM :
         nextState= "tomm"
+    elif currentMode == CENTER_MODE:
+        nextState="centermove"
     else:
         nextState=None
     if(DEBUG_INPUT and nextState != None):
@@ -704,9 +714,14 @@ if __name__ == '__main__':
          
             ## spider_robot mode change
             if (ch == '0' or ch == 'c' or ch =='c'):
-                print("Changing to spider mode")
-                mode="spider"
-                spiderMode(spider_robot)
+                if (mode == "scorpion"):
+                    print("Changing to spider mode")
+                    mode="spider"
+                    spiderMode(spider_robot)
+                else :
+                    print("Changing to scorpion mode")
+                    mode="scorpion"
+                    scorpionMode(spider_robot)
           
             ## symbole to direction ( work with arduino and keyboard)
             oldcurrentMode=currentSubMode
@@ -748,7 +763,9 @@ if __name__ == '__main__':
                         print "Entrer la valeur souhaitee en MM Y"
                         mmY=int(input())
                         spiderGoToMM(spider_robot,mmX,mmY)
-                        
+                    elif currentSubMode == CENTER_MODE:
+                      moveLeg(spider_robot.leg1,20,20,20)
+                      moveLeg(spider_robot.leg2,20,20,20)
                     elif(currentSubMode == ROTATE_MODE and oldcurrentMode != ROTATE_MODE):
                         stabilizeSpiderAfterWalking(spider_robot)
                     if(nextState == "rotateleft"):
